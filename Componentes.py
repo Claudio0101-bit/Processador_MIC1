@@ -50,6 +50,37 @@ class ULA:
         self.a = 0
         self.b = 0
 
+    # Setters dos dois Operandos da ULA
+    def setA(self, a):
+        self.a = a
+
+    def setB(self, b):
+        self.b = b
+
+    def set(self, a, b):
+        self.a = a
+        self.b = b
+
+    # Função de Execução da ULA com base na condição dada pela UC
+    def executar(self, cond):
+
+        # 00 -> Sem desvios e sem condicionais
+        if cond == "00":
+            return self.a + self.b
+
+        # 01 -> Desvio se Resultado for Negativo
+        if cond == "01" and (self.a + self.b) < 0:
+            pass
+
+        # 10 -> Desvio se Resultado for Zero
+        if cond == "10" and (self.a + self.b) == 0:
+            pass
+
+        # 11 -> Desvio sem condicionais
+        if cond == "11":
+            pass
+
+
 # Memória Principal (Uma lista de 4096 elementos, índice = endereço)
 mp = []
 for i in range(4096):
@@ -62,3 +93,14 @@ class Deslocador:
     def __init__(self):
         self.a = 0
 
+    def set(self, a):
+        self.a = a
+
+    # Função de Deslocamento de 1 bit do Descolador com base na condição dada pela UC
+    def deslocar(self, cond):
+
+        if cond == "0":
+            return self.a
+
+        if cond == "1":
+            return self.a << 1
