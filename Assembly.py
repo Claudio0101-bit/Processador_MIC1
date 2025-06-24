@@ -16,63 +16,120 @@ from Functions import *
 '''
 Assumindo o Parâmetro 'prog' como uma lista de Strings
 onde cada String corresponde a uma linha do Macro-Programa,
-no formato: INSTRUÇÃO VALOR/VARIÁVEL
+no formato: FLAG: INSTRUÇÃO VALOR/VARIÁVEL
 '''
+# Exemplos de Prog
+prog = ["LODD n","SUBD i","JNEG saída","LODD i","SUBD n","JZER dentro",
+        "JPOS saída","LOCO a","ADDD i","PSHI","POP","STOD m"]
 
+prog2 = ["START: LOCO 16",
+            "STOD var1",
+            "LOCO 1",
+            "STOD var2",
+            "LOCO 0",
+            "PUSH",
+            "LOCO 1",
+            "PUSH",
+            "LOOP: LODL 1",
+            "ADDL 0",
+            "PUSH",
+            "LODD var1",
+            "SUBD var2",
+            "STOD var1",
+            "JZER END",
+            "JUMP LOOP",
+            "END: JUMP END"]
 def gerar_e_compilar(prog):
 
-    # Armazenando quantidade de Variáveis no Programa
-    quant = 0
-
-    # Lista com Linhas do Programa Compiladas (em Binário)
+    # Lista com Linhas do Programa Compiladas (em Array de Arrays Binários)
     compilado = []
 
-    # Lista de Tuplas com Nome e Endereço de Variáveis
-    variaveis = []
+    # Dicionário para Flags, no formato 'Nome': Endereço
+    flags = {}
 
-    # Lista apenas com nomes de Variáveis para Verificação de Re-uso
-    nomes_var = []
+    # Dicionário de Tuplas para Variáveis, no formato 'Nome': (Valor, Endereço)
+    variaveis = {}
 
+    # Analisando o Programa dado
     for i in range(len(prog)):
-        campos = prog[i].split(" ")
+
+        # c -> Lista de Strings divididas de cada Linha do Programa
+        c = prog[i].split(" ")
 
         # Tratando Instruções que não possuem Valores
-        if len(campos) == 1:
-            mp[i] = inst[campos[0]]
+        if len(c) == 1:
+            mp[i] = str_to_array(inst[c[0]])
             compilado.append(mp[i])
             continue
 
-        # Identificando se há uma Variável na Instrução
-        var = campos[1].isidentifier()
+        # Identificando se há uma Flag antes da Instrução e armazenando-a
+        if ":" in c[0] and len(c) == 3:
+            flags[c[0][:len(c[0]) - 1]] = i
+            # Dúvida: Guardar End. de Flag já como Array Binário?
+            # Se sim, i -> dec_to_arraybin(i, 12)
+
+        # Identificando se há uma Variável ou Flag na Instrução
+        not_number = c[-1].isidentifier()
         bits = 12
+        # Identificando se é uma Instrução cujo Valor é de 8 bits
+        if c[-2] in ("INSP", "DESP"):
+            bits = 8
 
-        # Caso com Variável - Reservar Próximo Endereço na MP logo após Programa
-        if var == True:
+        # Caso com Variável ou Flag - Reservar Próximos Endereços na MP logo após Programa
+        if not_number == True:
 
-            # Tratando Casos em que variável já foi utilizada
-            if campos[1] in nomes_var:
-                for j in variaveis:
-                    if campos[1] == j[0]:
-                        mp[i] = inst[campos[0]] + b10_to_b2(j[1], bits)
+            # Tratando Casos em que Variável já foi utilizada
+            if c[-1] in variaveis.keys():
+                for nome_var in variaveis.keys():
+                    if c[-1] == nome_var:
+                        mp[i] = str_to_array(inst[c[-2]]) + dec_to_arraybin(variaveis[nome_var][1], bits)
                         compilado.append(mp[i])
                         break
-            # Tratando Casos de primeiro uso de uma variável
-            else:
-                mp[i] = inst[campos[0]] + b10_to_b2(len(prog) + quant, bits)
+
+            # Tratando Casos de Primeiro uso de uma Variável
+            elif not c[-1].isupper():
+                mp[i] = str_to_array(inst[c[-2]]) + dec_to_arraybin(len(prog) + len(variaveis), bits)
                 compilado.append(mp[i])
-                variaveis.append((campos[1], len(prog) + quant))
-                nomes_var.append(campos[1])
-                quant += 1
+                variaveis[c[-1]] = (0, len(prog) + len(variaveis))
 
+            # Tratando Casos de Flags com Endereços já registrados
+            if c[-1] in flags.keys():
+                for nome_flag in flags.keys():
+                    if c[-1] == nome_flag:
+                        mp[i] = str_to_array(inst[c[-2]]) + dec_to_arraybin(flags[nome_flag], bits)
+                        compilado.append(mp[i])
+                        break
 
-        # Caso sem Variável - Apenas Instrução e Valor
+            # Tratando Casos de Flags ainda não registradas
+            else:
+                for _ in range(i, len(prog)):
+                    if c[-1] + ":" in prog[_]:
+                        flags[c[-1]] = _
+                        mp[i] = str_to_array(inst[c[-2]]) + dec_to_arraybin(_, bits)
+                        break
+
+        # Caso sem Variável ou Flag - Apenas Instrução e Valor
         else:
-            # Identificando se é uma Instrução cujo Valor é de 8 bits
-            if campos[0] in ("INSP","DESP"):
-                bits = 8
-            mp[i] = inst[campos[0]] + b10_to_b2(campos[1], bits)
 
+            mp[i] = str_to_array(inst[c[-2]]) + dec_to_arraybin(int(c[-1]), bits)
             compilado.append(mp[i])
+        print(i)
 
-    # Retornando Lista do Programa Compilado e Lista de Variáveis
-    return compilado, variaveis
+    # Retornando Lista do Programa Compilado, Dicionário de Variáveis e Lista de Flags
+    return compilado, variaveis, flags
+
+# Testando se a Função está funcionando com Prog2
+compilado, variaveis, flags = gerar_e_compilar(prog2)
+
+print("Variáveis geradas: ", variaveis)
+print("-------------------------------------------------")
+print("MP:")
+for i in range(len(prog2) + len(variaveis)):
+    print(i, " : ", mp[i])
+print("-------------------------------------------------")
+print("Compilado: ")
+for i in compilado:
+    print(i)
+print("Len(Compilado): ", len(compilado))
+print("-------------------------------------------------")
+print("Flags: ", flags)
