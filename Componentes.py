@@ -9,7 +9,7 @@ Arquivo: Componentes.py
 
 '''
 
-from Functions import soma_ULA, inv_ULA
+from Functions import soma_ULA, inv_ULA, status_ULA
 
 # Classe única referente aos Registradores do Processador
 class Registradores:
@@ -77,10 +77,16 @@ class Registradores:
 # Classe referente à Unidade Lógica-Aritmética (ULA)
 class ULA:
 
-    # Operandos A e B (Talvez desnecessário)
+
     def __init__(self):
-        self.a = []
-        self.b = []
+        self.a = []  # Operando A
+        self.b = []  # Operando B
+        self.f = []  # Operação F
+        self.r = []  # Resultado R
+        self.d = [0, 0]  # Status D = [N, Z]
+
+        # Estado N (Se o resultado é Negativo)
+        # Estado Z (Se o resultado é Zero)
 
     # Setters dos dois Operandos da ULA
     def setA(self, a):
@@ -89,35 +95,71 @@ class ULA:
     def setB(self, b):
         self.b = b
 
-    def set(self, a, b):
+    def setOps(self, a, b):
         self.a = a
         self.b = b
 
-    # Função de Execução da ULA com base na condição F (em Array) dada pela UC
-    def executar(self, f):
+    # Setter da Operação
+    def setF(self, f):
+        self.f = f
 
-        # 00 -> SOMA --- Sem desvios e sem condicionais
+    # Função de Execução da ULA com base em:
+    # Operação F (em Array) dada pela UC
+    # Condição COND (em Array) dada pela UC
+    def executar(self, f, cond):
+
+        # F = 00 -> SOMA --- Sem desvios e sem condicionais
         if f == [0, 0]:
-            return soma_ULA(self.a, self.b)
+            self.r = soma_ULA(self.a, self.b)
 
-        # 01 -> AND --- Desvio se Resultado for Negativo
-        if f == [0, 1] and (self.a + self.b) < 0:
+            # return self.r
+
+        # F = 01 -> AND --- Desvio se Resultado for Negativo
+        if f == [0, 1]:
+            for i in range(len(self.a)):
+                if self.a[i] == 1 and self.b[i] == 1:
+                    self.r[i] = 1
+                else:
+                    self.r[i] = 0
+
+            # return self.r
+
+        # F = 10 -> IDENTIDADE (A) --- Desvio se Resultado for Zero
+        if f == [1, 0]:
+            self.r = self.a
+
+            # return self.r
+
+        # F = 11 -> INVERTER A --- Desvio sem condicionais
+        if f == [1, 1]:
+            self.r = inv_ULA(self.a)
+
+            # return self.r
+
+        # Verificando Status D = [N, Z]
+        self.d = status_ULA(self.r)
+
+        # Condições de Desvio
+        if cond == [0,0]:
+            pass
+        if cond == [0,1] and self.d[0] == 1:
+            pass
+        if cond == [1,0] and self.d[1] == 1:
+            pass
+        if cond == [1,1]:
             pass
 
-        # 10 -> IDENTIDADE (A) --- Desvio se Resultado for Zero
-        if f == [1, 0] and (self.a + self.b) == 0:
-            return self.a
 
-        # 11 -> INVERTER A --- Desvio sem condicionais
-        if f == [1, 1]:
-            return inv_ULA(self.a)
-
-
-# Memória Principal (Uma lista de 4096 elementos, índice = endereço)
+# Memória Principal = MP (Uma lista de 4096 elementos, índice = endereço)
 # Palavras de 16 bits em forma de Array Binário
 mp = []
 for i in range(4096):
     mp.append([0 for _ in range(16)])
+
+# Memória de Controle = MC (Uma lista sem tamanho determinado)
+# Armazenará o Micro-programa em Binário
+# Palavras de 32 bits em forma de Array Binário
+mc = []
 
 # Classe referente ao Deslocador
 class Deslocador:
@@ -132,10 +174,10 @@ class Deslocador:
     # Função de Deslocamento de 1 bit do Descolador com base na condição dada pela UC
     def deslocar(self, cond):
 
-        if cond == 0:  # Retornar o número (Array Binário) inalterado
+        if cond == [0,0]:  # Retornar o número (Array Binário) inalterado
             return self.a
 
-        if cond == 1:  # Deslocar um bit para a esquerda
+        if cond == [0,1]:  # Deslocar um bit para a esquerda
             if not all(b in (0, 1) for b in self.a):
                 raise ValueError("Array do Deslocador [Função deslocar()] não corresponde a um Array Binário.")
 
