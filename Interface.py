@@ -16,12 +16,8 @@ class Variables:
     """
     Classe que reúne as variáveis:
     inst_index: posição da próxima instrução na lista
-    last_instr_var: variável do tkinter que guarda a string da última instrução executada
-    next_instr_var: variável do tkinter que guarda a string da próxima instrução
     regis_list: lista com os valores dos regostradores
     memor_list: lista com os valores dos endereços de memória
-    regis_var: variável do tkinter que guarda os valores dos registradores
-    memor_var: variável do tkinter que guarda os valores dos endereços de memória
     not_compiled: lista com as linhas de código em macroinstruções
     compiled: lista com as linhas de código em binário.
     """
@@ -29,14 +25,8 @@ class Variables:
     def __init__(self):
         self.inst_index = 0
 
-        self.atua_instr_var = tk.StringVar()
-        self.last_instr_var = tk.StringVar()
-        self.next_instr_var = tk.StringVar()
-
         self.regis_list = []
         self.memor_list = []
-        self.regis_var = tk.StringVar()
-        self.memor_var = tk.StringVar()
 
         self.not_compiled = []
         self.compiled = []
