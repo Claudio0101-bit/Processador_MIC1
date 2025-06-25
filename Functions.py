@@ -110,3 +110,14 @@ def inv_ULA(a):
 
     return soma_ULA(a_inv, mais1)
 
+def status_ULA(r):
+    # Status D = [N, Z]
+    d = [0,0]
+
+    # Estado N
+    if r[0] == 1:
+        d[0] = 1
+    # Estado Z
+    if r == [0 for _ in range(len(r))]:
+        d[1] = 1
+    return d
