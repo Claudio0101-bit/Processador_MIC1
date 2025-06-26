@@ -88,12 +88,9 @@ class Registradores:
     # (retira os 4 primeiros bits, referentes a Instrução, sobrando os bits de enderço)
     def valor_AMASK(self):
         self.regs[8] = [0,0,0,0] + self.regs[8][4:]
-
-        ''' 
-        Está faltando Decoders(A,B,C).
-        Eu (Cláudio) não lembro muito a teoria desses componentes, então devo revisar
-        antes de implementá-los, mas com liberdade para quem quiser implementá-los.
-        '''
+	
+    def valor_SMASK(self):
+        pass
 
 # Classe referente à Unidade Lógica-Aritmética (ULA)
 class ULA:
