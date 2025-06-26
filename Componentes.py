@@ -4,39 +4,39 @@ Comentários por Cláudio Pires Salgado
 Arquivo: Componentes.py
 
     Arquivo de código em Python voltado para a programação de funções, classes e/ou
-    variáveis que dizem respeito aos demais componentes presentes no Processador.
+    variáveis que dizem respeito aos demais componentes presentes no Processador
     que serão utilizadas para os demais arquivos de código.
 
 '''
 
-from Functions import soma_ULA, inv_ULA, status_ULA
+from Functions import *
 
 # Classe única referente aos Registradores do Processador
 class Registradores:
 
     def __init__(self):
         '''
-        Registradores da Via de Dados da ULA: recebem valores vindos do Deslocador
+        Lista dos Registradores da Via de Dados da ULA: recebem valores vindos do Deslocador
         e jogam seus valores para um dos Latchs (A e B)
         '''
-        self.pc = 0  # Program Counter
-        self.ac = 0  # Acumulador
-        self.sp = 0  # Stack Pointer
-        self.ir = 0  # Instrução atual
-        self.tir = 0
-        self.ze = 0  # Registrador 0
-        self.ma1 = +1  # Registrador +1
-        self.me1 = -1  # Registrador -1
-        self.am = 0  # AMASK
-        self.sm = 0  # SMASK
-        # Registradores Auxiliares (de A a F)
-        self.a = 0
-        self.b = 0
-        self.c = 0
-        self.d = 0
-        self.e = 0
-        self.f = 0
-
+        self.regs = [
+        [],  # 0 -> PC: Program Counter
+        [],  # 1 -> AC: Acumulador
+        [],  # 2 -> SP: Stack Pointer
+        [],  # 3 -> IR: Instruction Register
+        [],  # 4 -> TIR:
+        dec_to_arraybin(0,16),  # 5 -> Zero (0)
+        dec_to_arraybin(1,16),  # 6 -> Mais-um (+1)
+        dec_to_arraybin(-1,16),  # 7 -> Menos-um (-1)
+        [],  # 8 -> AM: AMASK
+        [],  # 9 -> SM: SMASK
+        [],  # 10 -> A
+        [],  # 11 -> B
+        [],  # 12 -> C
+        [],  # 13 -> D
+        [],  # 14 -> E
+        []   # 15 -> F
+        ]
         '''
             Registradores de Acesso à Memória Principal: 
         MAR: recebe valor apenas de Latch B
@@ -56,17 +56,38 @@ class Registradores:
         self.AMUX = 0
 
         '''
-        Registradores da Via de Dados da UC
+            Registradores da Via de Dados da UC
+        MPC: guarda endereço para  acessar Micro-programa da Memória de Controle
+        MIR: recebe Microinstrução em Binário da Memória de Controle
+        MMUX: recebe MPC incrementado ou endereço de desvio ADDR para passar para MPC 
         '''
-        self.mpc = 0  # Micro Program Counter
-        self.mir = 0  # Micro-instrução atual
+        self.mpc = 0  # MPC: Micro Program Counter
+        self.mir = 0  # MIR: Micro Instruction Register
         self.MMUX = 0  # MMUX
 
 
     # Função que definirá o valor de AMUX (valor de Latch A ou de MBR)
+    # Cond = 0 -> AMUX = Latch A
+    # Cond = 1 -> AMUX = MBR
     def valor_AMUX(self, cond):
-        pass
+        if cond == [0]:
+            self.AMUX = self.latchA
+        if cond == [1]:
+            self.AMUX = self.mbr
 
+    # Função que definirá o valor de MMUX (MPC + 1 ou ADDR)
+    # Cond_log = 0 -> MMUX = MPC + 1
+    # Cond_log = 1 -> MMUX = ADDR
+    def valor_MMUX(self, addr, cond_log):
+        if cond_log == [0]:
+            self.MMUX = soma_ULA(self.mpc, self.regs[6])
+        if cond_log == [1]:
+            self.MMUX = addr
+
+    # Função que definirá o valor do AMASK
+    # (retira os 4 primeiros bits, referentes a Instrução, sobrando os bits de enderço)
+    def valor_AMASK(self):
+        self.regs[8] = [0,0,0,0] + self.regs[8][4:]
 
         ''' 
         Está faltando Decoders(A,B,C).
@@ -77,7 +98,6 @@ class Registradores:
 # Classe referente à Unidade Lógica-Aritmética (ULA)
 class ULA:
 
-
     def __init__(self):
         self.a = []  # Operando A
         self.b = []  # Operando B
@@ -85,10 +105,10 @@ class ULA:
         self.r = []  # Resultado R
         self.d = [0, 0]  # Status D = [N, Z]
 
-        # Estado N (Se o resultado é Negativo)
-        # Estado Z (Se o resultado é Zero)
+        # Estado N (Se o resultado é Negativo, 1° bit é 1)
+        # Estado Z (Se o resultado é Zero, Array de 0's)
 
-    # Setters dos dois Operandos da ULA
+    # Setters da ULA
     def setA(self, a):
         self.a = a
 
@@ -104,18 +124,17 @@ class ULA:
         self.f = f
 
     # Função de Execução da ULA com base em:
-    # Operação F (em Array) dada pela UC
-    # Condição COND (em Array) dada pela UC
-    def executar(self, f, cond):
+    # Operação F (em Array) dada pela UC (pelo registrador MIR)
+    def executar(self):
 
-        # F = 00 -> SOMA --- Sem desvios e sem condicionais
-        if f == [0, 0]:
+        # F = 00 -> SOMA
+        if self.f == [0, 0]:
             self.r = soma_ULA(self.a, self.b)
 
             # return self.r
 
-        # F = 01 -> AND --- Desvio se Resultado for Negativo
-        if f == [0, 1]:
+        # F = 01 -> AND
+        if self.f == [0, 1]:
             for i in range(len(self.a)):
                 if self.a[i] == 1 and self.b[i] == 1:
                     self.r[i] = 1
@@ -124,14 +143,14 @@ class ULA:
 
             # return self.r
 
-        # F = 10 -> IDENTIDADE (A) --- Desvio se Resultado for Zero
-        if f == [1, 0]:
+        # F = 10 -> IDENTIDADE (A)
+        if self.f == [1, 0]:
             self.r = self.a
 
             # return self.r
 
-        # F = 11 -> INVERTER A --- Desvio sem condicionais
-        if f == [1, 1]:
+        # F = 11 -> INVERTER A
+        if self.f == [1, 1]:
             self.r = inv_ULA(self.a)
 
             # return self.r
@@ -139,27 +158,13 @@ class ULA:
         # Verificando Status D = [N, Z]
         self.d = status_ULA(self.r)
 
-        # Condições de Desvio
-        if cond == [0,0]:
-            pass
-        if cond == [0,1] and self.d[0] == 1:
-            pass
-        if cond == [1,0] and self.d[1] == 1:
-            pass
-        if cond == [1,1]:
-            pass
-
-
-# Memória Principal = MP (Uma lista de 4096 elementos, índice = endereço)
+# Memória Principal = MP
+# Endereços de 12 bits, ou seja, 2**12 = 4096 endereços
 # Palavras de 16 bits em forma de Array Binário
 mp = []
-for i in range(4096):
+for i in range(2**12):
     mp.append([0 for _ in range(16)])
 
-# Memória de Controle = MC (Uma lista sem tamanho determinado)
-# Armazenará o Micro-programa em Binário
-# Palavras de 32 bits em forma de Array Binário
-mc = []
 
 # Classe referente ao Deslocador
 class Deslocador:
@@ -177,7 +182,7 @@ class Deslocador:
         if cond == [0,0]:  # Retornar o número (Array Binário) inalterado
             return self.a
 
-        if cond == [0,1]:  # Deslocar um bit para a esquerda
+        if cond == [1,0]:  # Deslocar um bit para a esquerda
             if not all(b in (0, 1) for b in self.a):
                 raise ValueError("Array do Deslocador [Função deslocar()] não corresponde a um Array Binário.")
 
@@ -187,6 +192,17 @@ class Deslocador:
             # Remove o primeiro bit (mais significativo) e adiciona um 0 no final
             return self.a[1:] + [0]
 
+# Classe referente aos Decoders
+# Barramentos/Decoders A e B escolherão os registradores usados como Operandos
+# Barramento/Decoder C escolherá onde o resultado será gravado (se for gravado)
+class Decoders:
+    def __init__(self):
+        self.a = []  # 4 bits (0 a 15) pra escolher entre os Regs da Via de Dados
+        self.b = []  # 4 bits (0 a 15) pra escolher entre os Regs da Via de Dados
+        self.c = []  # 5 bits => 4 para escolher o Reg e 1(1°) para dizer se vai ser gravado
+
+# Classe referente ao Relógio para temporização em Ciclos e Subciclos
+# 1 Ciclo = 4 Subciclos
 class Clock:
     def __init__(self):
         self.ciclo_atual = 0
@@ -198,3 +214,95 @@ class Clock:
             self.subciclo_atual = 0
         else:
             self.subciclo_atual += 1
+
+# Memória de Controle
+# Contém as 79 Microinstruções em Binário (32 bits) seguindo a seguinte ordem:
+'''
+Respectivos Componentes que recebem suas respectivas quantidades de bits (ordenados)
+AMUX / COND / ULA / DESL / MBR / MAR / RD / WR / EnC / Bar.C / Bar.B / Bar.A / ADDR
+  1     2      2     2      1     1    1    1    1       4       4       4       8
+ (0)/ (1,2)/ (3,4)/ (5,6)/ (7)/  (8)/ (9) /(10) /(11) /(12-15)/(16-19)/(20-23)/(24-31)
+'''
+mc = (
+#                            1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 3 3
+#        0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+        [0,0,0,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],  # 0
+		[0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0],  # 1
+		[1,0,1,1,0,0,0,0,0,0,0,1,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0],  # 2
+		[0,0,1,0,0,1,0,0,0,0,0,1,0,1,0,0,0,0,1,1,0,0,1,1,0,0,0,1,0,0,1,1],  # 3
+		[0,0,1,1,0,1,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,1,1],  # 4
+		[0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,1],  # 5
+		[0,0,0,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0],  # 6
+		[0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],  # 7
+		[1,1,1,1,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],  # 8
+		[0,0,0,1,0,0,0,1,1,0,1,0,0,0,0,0,0,0,1,1,0,0,0,1,0,0,0,0,0,0,0,0],  # 9
+		[0,1,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],  # 10
+		[0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,1,1,1],  # 11
+		[0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0], # 12
+		[0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], # 13
+		[1,1,1,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0], # 14
+		[0,0,0,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0], # 15
+		[0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,1,0,1,1,0,0,0,0,1,0,0,0,0,0,0,0,0], # 16
+		[1,0,0,1,1,0,0,0,0,0,0,1,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], # 17
+		[0,1,1,0,0,0,0,0,0,0,0,1,0,0,0,1,1,0,1,0,0,0,0,1,0,0,0,0,0,0,0,0], # 18
+		[0,0,1,1,0,1,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,1,1,0,0,1], # 19
+		[0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,1,1,1], # 20
+		[0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0], # 21
+		[0,1,1,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0], # 22
+		[0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1,1,0], # 23
+		[0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], # 24
+		[0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,1,0,1,1], # 25
+		[0,1,1,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0], # 26
+		[0,1,1,0,1,0,0,0,0,0,0,1,0,0,0,1,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0], # 27
+		[0,0,1,0,0,1,0,0,0,0,0,1,0,1,0,0,0,0,1,1,0,0,1,1,0,0,1,0,1,0,0,0], # 28
+		[0,0,1,1,0,1,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,1,1], # 29
+		[0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1], # 30
+		[0,0,0,0,0,0,0,0,0,0,0,1,1,0,1,0,0,0,1,1,0,0,1,0,0,0,0,0,0,0,0,0], # 31
+		[0,1,1,0,0,0,0,0,1,1,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,1,1,1], # 32
+		[0,0,0,0,0,0,0,0,0,0,0,1,1,0,1,0,0,0,1,1,0,0,1,0,0,0,0,0,0,0,0,0], # 33
+		[0,1,1,1,0,0,0,1,1,0,1,0,0,0,0,0,1,0,1,0,0,0,0,1,0,0,0,0,1,0,1,0], # 34
+		[0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0,1,1,0], # 35
+		[0,0,0,0,0,0,0,0,0,0,0,1,1,0,1,0,0,0,1,1,0,0,1,0,0,0,0,0,0,0,0,0], # 36
+		[0,1,1,0,0,0,0,0,1,1,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,1,1,0,1], # 37
+		[0,0,0,0,0,0,0,0,0,0,0,1,1,0,1,0,0,0,1,1,0,0,1,0,0,0,0,0,0,0,0,0], # 38
+		[0,1,1,0,0,0,0,0,1,1,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0], # 39
+		[0,0,1,1,0,1,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,1,0,0,0,0,1,0,1,1,1,0], # 40
+		[0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,0,1,1,0,0], # 41
+		[0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1,1,0], # 42
+		[0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], # 43
+		[0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0], # 44
+		[0,1,1,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0], # 45
+		[0,0,1,1,0,1,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,1,0,0,0,0,1,1,0,0,1,0], # 46
+	    [0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,1,0,0,1,1,1,0,0,0,0,0,0,0,0], # 47
+		[0,0,0,1,0,0,0,1,1,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0], # 48
+		[0,1,1,0,1,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0], # 49
+		[0,0,1,1,0,1,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,1], # 50
+		[0,0,1,1,0,1,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,1,0,0,0,0,1,1,1,0,1,1], # 51
+		[0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,1,1,0,0,0], # 52
+		[0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0], # 53
+		[0,0,0,0,0,0,0,0,0,1,0,1,0,0,1,0,0,0,1,0,0,1,1,1,0,0,0,0,0,0,0,0], # 54
+		[0,1,1,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,1,0], # 55
+		[0,0,0,0,0,0,0,0,1,1,0,1,0,0,1,0,0,0,1,0,0,1,1,0,0,0,0,0,0,0,0,0], # 56
+		[0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], # 57
+		[0,1,1,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,0,1,0], # 58
+		[0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,1,1,1,1,0], # 59
+		[0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,1,0,0,1,1,1,0,0,0,0,0,0,0,0], # 60
+		[0,1,1,1,0,0,0,1,1,0,1,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1,0,1,0], # 61
+		[0,0,0,0,0,0,0,0,1,1,0,1,0,0,1,0,0,0,1,0,0,1,1,0,0,0,0,0,0,0,0,0], # 62
+		[0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], # 63
+		[1,1,1,1,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], # 64
+		[0,0,1,1,0,1,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,1,0,0,0,1,0,0,1,0,0,1], # 65
+		[0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,1,1,0], # 66
+		[0,0,0,0,0,0,0,0,1,1,0,1,0,0,1,0,0,0,1,0,0,1,1,0,0,0,0,0,0,0,0,0], # 67
+		[0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], # 68
+		[1,1,1,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], # 69
+		[0,0,0,1,0,0,0,0,0,0,0,1,1,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0], # 70
+		[0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0], # 71
+		[0,1,1,1,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0], # 72
+		[0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,1,1,0,0],  # 73
+		[0,0,0,0,1,0,0,0,0,0,0,1,1,0,1,0,0,0,1,1,1,0,0,1,0,0,0,0,0,0,0,0],  # 74
+		[0,1,1,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,1,0,1,0,1,0,0,0,0,0,0,0,0,0],  # 75
+		[0,0,0,0,1,0,0,0,0,0,0,1,1,0,1,0,0,0,1,1,1,0,0,1,0,0,0,0,0,0,0,0],  # 76
+		[0,0,0,1,1,0,0,0,0,0,0,1,1,0,1,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0],  # 77
+		[0,1,1,0,0,0,0,0,0,0,0,1,1,0,1,0,1,0,1,0,0,1,1,0,0,1,0,0,1,0,1,1]  # 78
+)
