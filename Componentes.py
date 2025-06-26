@@ -186,3 +186,15 @@ class Deslocador:
 
             # Remove o primeiro bit (mais significativo) e adiciona um 0 no final
             return self.a[1:] + [0]
+
+class Clock:
+    def __init__(self):
+        self.ciclo_atual = 0
+        self.subciclo_atual = 0
+
+    def avanca_subciclo(self):
+        if self.subciclo_atual == 3:
+            self.ciclo_atual += 1
+            self.subciclo_atual = 0
+        else:
+            self.subciclo_atual += 1
