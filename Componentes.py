@@ -20,9 +20,9 @@ class Registradores:
         e jogam seus valores para um dos Latchs (A e B)
         '''
         self.regs = [
-        [],  # 0 -> PC: Program Counter
+        dec_to_arraybin(0,16),  # 0 -> PC: Program Counter
         [],  # 1 -> AC: Acumulador
-        [],  # 2 -> SP: Stack Pointer
+        dec_to_arraybin(4095,16),  # 2 -> SP: Stack Pointer
         [],  # 3 -> IR: Instruction Register
         [],  # 4 -> TIR:
         dec_to_arraybin(0,16),  # 5 -> Zero (0)
@@ -39,58 +39,61 @@ class Registradores:
         ]
         '''
             Registradores de Acesso à Memória Principal: 
-        MAR: recebe valor apenas de Latch B
-        MBR: recebe valor do Deslocador e joga valor para AMUX 
+        MAR: recebe valor apenas de Latch B, guarda bit da UC
+        MBR: recebe valor do Deslocador e joga valor para AMUX, guarda bit da UC 
         '''
-        self.mar = 0  # Registrador de Endereços (Memory Adress Register)
-        self.mbr = 0  # Registrador de Dados (Memory Buffer Register)
+        self.mar = (0,[])  # Registrador de Endereços (Memory Adress Register)
+        self.mbr = (0,[])  # Registrador de Dados (Memory Buffer Register)
 
         '''
             Registradores de transição, associados à ULA:
         Latch A: recebe valor dos Registradores e joga para AMUX
         Latch B: recebe valor dos Registradores e joga para MAR ou para ULA
-        AMUX: recebe valor ou de Latch A ou de MBR e joga para ULA
+        AMUX: decide entre valor ou de Latch A ou de MBR e joga para ULA
         '''
-        self.latchA = 0
-        self.latchB = 0
-        self.AMUX = 0
-
+        self.latchA = []
+        self.latchB = []
+        self.AMUX = [0, []]
         '''
             Registradores da Via de Dados da UC
         MPC: guarda endereço para  acessar Micro-programa da Memória de Controle
         MIR: recebe Microinstrução em Binário da Memória de Controle
-        MMUX: recebe MPC incrementado ou endereço de desvio ADDR para passar para MPC 
+        MMUX: decide entre MPC incrementado ou endereço de desvio ADDR para passar para MPC 
         '''
-        self.mpc = 0  # MPC: Micro Program Counter
-        self.mir = 0  # MIR: Micro Instruction Register
+        self.mpc = dec_to_arraybin(0,8)  # MPC: Micro Program Counter
+        self.mir = dec_to_arraybin(0,32)  # MIR: Micro Instruction Register
+
+        # Valores do MMUX: Bit da Caixa Lógica, MPC incrementado, ADDR e Índice decisivo
         self.MMUX = 0  # MMUX
 
 
     # Função que definirá o valor de AMUX (valor de Latch A ou de MBR)
     # Cond = 0 -> AMUX = Latch A
     # Cond = 1 -> AMUX = MBR
-    def valor_AMUX(self, cond):
-        if cond == [0]:
-            self.AMUX = self.latchA
-        if cond == [1]:
-            self.AMUX = self.mbr
+    def valor_AMUX(self):
+        if self.AMUX[0] == 0:
+            self.AMUX[1] = self.latchA
+        if self.AMUX[0] == 1:
+            self.AMUX[1] = self.mbr[1]
 
     # Função que definirá o valor de MMUX (MPC + 1 ou ADDR)
     # Cond_log = 0 -> MMUX = MPC + 1
     # Cond_log = 1 -> MMUX = ADDR
-    def valor_MMUX(self, addr, cond_log):
-        if cond_log == [0]:
-            self.MMUX = soma_ULA(self.mpc, self.regs[6])
-        if cond_log == [1]:
-            self.MMUX = addr
+    def valor_MMUX(self):
+        if self.MMUX == 0:
+            self.mpc = soma_ULA(self.mpc, self.regs[6])
+        if self.MMUX == 1:
+            self.mpc = self.mir[24:]
 
     # Função que definirá o valor do AMASK
     # (retira os 4 primeiros bits, referentes a Instrução, sobrando os bits de enderço)
     def valor_AMASK(self):
         self.regs[8] = [0,0,0,0] + self.regs[8][4:]
-	
+
+    # Função que definirá o valor do AMASK
+    # (retira os 8 primeiros bits, referentes a INSP e DESP, sobrando os bits de valor)
     def valor_SMASK(self):
-        pass
+        self.regs[9] = [0 for _ in range(8)] + self.regs[9][9:]
 
 # Classe referente à Unidade Lógica-Aritmética (ULA)
 class ULA:
@@ -166,28 +169,30 @@ for i in range(2**12):
 # Classe referente ao Deslocador
 class Deslocador:
 
-    # Um único Operando (Talvez desnecessário)
+    # Um único Operando
+    # Condição dada pela UC
     def __init__(self):
         self.a = []
+        self.cond = []
 
     def set(self, a):
         self.a = a
 
     # Função de Deslocamento de 1 bit do Descolador com base na condição dada pela UC
-    def deslocar(self, cond):
+    def deslocar(self):
 
-        if cond == [0,0]:  # Retornar o número (Array Binário) inalterado
-            return self.a
+        if self.cond == [0,0]:  # Retornar o número (Array Binário) inalterado
+            self.a = self.a
 
-        if cond == [1,0]:  # Deslocar um bit para a esquerda
+        if self.cond == [1,0]:  # Deslocar um bit para a esquerda
             if not all(b in (0, 1) for b in self.a):
                 raise ValueError("Array do Deslocador [Função deslocar()] não corresponde a um Array Binário.")
 
             if len(self.a) == []:
-                return []
+                self.a = []
 
             # Remove o primeiro bit (mais significativo) e adiciona um 0 no final
-            return self.a[1:] + [0]
+            self.a = self.a[1:] + [0]
 
 # Classe referente aos Decoders
 # Barramentos/Decoders A e B escolherão os registradores usados como Operandos
@@ -211,7 +216,6 @@ class Clock:
             self.subciclo_atual = 0
         else:
             self.subciclo_atual += 1
-
 # Classe referente à caixa "Lógica para o Controle de Fluxo"
 # Recebe Status D da ULA e COND do MIR
 # Retorna o valor que definirá se ocorre desvio ou não
@@ -245,7 +249,6 @@ class CaixaLogica:
         if self.COND == [1,1]:
             self.retorno = 1
 
-
 # Memória de Controle
 # Contém as 79 Microinstruções em Binário (32 bits) seguindo a seguinte ordem:
 '''
@@ -257,18 +260,18 @@ AMUX / COND / ULA / DESL / MBR / MAR / RD / WR / EnC / Bar.C / Bar.B / Bar.A / A
 mc = (
 #                            	    1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 3 3
 #        	0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-        	[0,0,0,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], # 0
-		[0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0], # 1
-		[1,0,1,1,0,0,0,0,0,0,0,1,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0], # 2
-		[0,0,1,0,0,1,0,0,0,0,0,1,0,1,0,0,0,0,1,1,0,0,1,1,0,0,0,1,0,0,1,1], # 3
-		[0,0,1,1,0,1,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,1,1], # 4
-		[0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,1], # 5
-		[0,0,0,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0], # 6
-		[0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], # 7
-		[1,1,1,1,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], # 8
-		[0,0,0,1,0,0,0,1,1,0,1,0,0,0,0,0,0,0,1,1,0,0,0,1,0,0,0,0,0,0,0,0], # 9
-		[0,1,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], # 10
-		[0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,1,1,1], # 11
+        	[0,0,0,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],  # 0
+		[0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0],  # 1
+		[1,0,1,1,0,0,0,0,0,0,0,1,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0],  # 2
+		[0,0,1,0,0,1,0,0,0,0,0,1,0,1,0,0,0,0,1,1,0,0,1,1,0,0,0,1,0,0,1,1],  # 3
+		[0,0,1,1,0,1,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,1,1],  # 4
+		[0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,1],  # 5
+		[0,0,0,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0],  # 6
+		[0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],  # 7
+		[1,1,1,1,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],  # 8
+		[0,0,0,1,0,0,0,1,1,0,1,0,0,0,0,0,0,0,1,1,0,0,0,1,0,0,0,0,0,0,0,0],  # 9
+		[0,1,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],  # 10
+		[0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,1,1,1],  # 11
 		[0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0], # 12
 		[0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], # 13
 		[1,1,1,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0], # 14
@@ -330,10 +333,10 @@ mc = (
 		[0,0,0,1,0,0,0,0,0,0,0,1,1,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0], # 70
 		[0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0], # 71
 		[0,1,1,1,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0], # 72
-		[0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,1,1,0,0], # 73
-		[0,0,0,0,1,0,0,0,0,0,0,1,1,0,1,0,0,0,1,1,1,0,0,1,0,0,0,0,0,0,0,0], # 74
-		[0,1,1,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,1,0,1,0,1,0,0,0,0,0,0,0,0,0], # 75
-		[0,0,0,0,1,0,0,0,0,0,0,1,1,0,1,0,0,0,1,1,1,0,0,1,0,0,0,0,0,0,0,0], # 76
-		[0,0,0,1,1,0,0,0,0,0,0,1,1,0,1,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0], # 77
+		[0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,1,1,0,0],  # 73
+		[0,0,0,0,1,0,0,0,0,0,0,1,1,0,1,0,0,0,1,1,1,0,0,1,0,0,0,0,0,0,0,0],  # 74
+		[0,1,1,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,1,0,1,0,1,0,0,0,0,0,0,0,0,0],  # 75
+		[0,0,0,0,1,0,0,0,0,0,0,1,1,0,1,0,0,0,1,1,1,0,0,1,0,0,0,0,0,0,0,0],  # 76
+		[0,0,0,1,1,0,0,0,0,0,0,1,1,0,1,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0],  # 77
 		[0,1,1,0,0,0,0,0,0,0,0,1,1,0,1,0,1,0,1,0,0,1,1,0,0,1,0,0,1,0,1,1]  # 78
 )
