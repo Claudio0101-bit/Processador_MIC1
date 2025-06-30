@@ -210,12 +210,43 @@ class Clock:
         self.ciclo_atual = 0
         self.subciclo_atual = 0
 
+        self.intervalo = 1000
+        self.paused = True
+        self.autoexec = False
+
+        # trocar as funções lambda pelas funções de subciclo
+        self.subciclos = [
+            lambda: print("chamar subciclo 1"),
+            lambda: print("chamar subciclo  2"),
+            lambda: print("chamar subciclo   3"),
+            lambda: print("chamar subciclo    4")
+        ]
+
     def avanca_subciclo(self):
-        if self.subciclo_atual == 3:
-            self.ciclo_atual += 1
+        self.subciclo_atual += 1
+        if self.subciclo_atual == 4:
             self.subciclo_atual = 0
-        else:
-            self.subciclo_atual += 1
+        # chamada da sub-rotina de subciclo
+        self.subciclos[self.subciclo_atual-1]()
+
+    def atualiza_intervalo(self, vars):
+        if not self.autoexec and vars.intervalo.get().isdigit():
+            self.intervalo = int(vars.intervalo.get())
+
+    def pausa_clock(self):
+        self.paused = True
+
+    def despausa_clock(self):
+        self.paused = False
+
+    # coloca o clock em um estado que chama sem intervalos as
+    # funções de subciclo, só é possível sair desse estado ao
+    # término do programa, mas essa verificação não é feita ainda
+    def executa_tudo(self):
+        self.paused = False
+        self.intervalo = 0
+        self.autoexec = True
+	    
 # Classe referente à caixa "Lógica para o Controle de Fluxo"
 # Recebe Status D da ULA e COND do MIR
 # Retorna o valor que definirá se ocorre desvio ou não
