@@ -2,8 +2,9 @@
 import tkinter as tk
 from tkinter import ttk
 from ttkthemes import themed_style as ts
-from Assembly import b10_to_b2
+from Assembly import dec_to_arraybin
 from Assembly import gerar_e_compilar
+from Componentes import Clock
 
 
 # ===================================================== FUNÇÕES ================================================= #
@@ -16,17 +17,28 @@ class Variables:
     """
     Classe que reúne as variáveis:
     inst_index: posição da próxima instrução na lista
+    last_instr_var: variável do tkinter que guarda a string da última instrução executada
+    next_instr_var: variável do tkinter que guarda a string da próxima instrução
     regis_list: lista com os valores dos regostradores
     memor_list: lista com os valores dos endereços de memória
+    regis_var: variável do tkinter que guarda os valores dos registradores
+    memor_var: variável do tkinter que guarda os valores dos endereços de memória
     not_compiled: lista com as linhas de código em macroinstruções
     compiled: lista com as linhas de código em binário.
     """
 
     def __init__(self):
         self.inst_index = 0
+        self.intervalo = tk.StringVar()
+
+        self.atua_instr_var = tk.StringVar()
+        self.last_instr_var = tk.StringVar()
+        self.next_instr_var = tk.StringVar()
 
         self.regis_list = []
         self.memor_list = []
+        self.regis_var = tk.StringVar()
+        self.memor_var = tk.StringVar()
 
         self.not_compiled = []
         self.compiled = []
@@ -99,10 +111,10 @@ class Buttons:
         self.button_eall = tk.Button(self.execussao, text="executar tudo", height=1, command=interface.ex_all)
         self.button_eall.pack(fill="x", pady=1, padx=5)
 
-        self.button_paus = tk.Button(self.execussao, text="pausar execussão", height=1, command=interface.ex_pause)
+        self.button_paus = tk.Button(self.execussao, text="pausar execussão", height=1, command=interface.ex_pause, state="disabled")
         self.button_paus.pack(fill="x", pady=1, padx=5)
 
-        self.button_inte = tk.Button(self.execussao, text="executar em intervalos", height=1, command=interface.ex_nexts)
+        self.button_inte = tk.Button(self.execussao, text="iniciar/despausar", height=1, command=interface.ex_nexts)
         self.button_inte.pack(fill="x", pady=1, padx=5)
 
         # INSTRUÇÕES ------------------------------------------------------------------------------------------
@@ -145,8 +157,12 @@ class Buttons:
 
         self.time_label = tk.Label(self.subframe, font=("Arial", 11), text="Intervalo:")
         self.time_label.grid(row=0, column=0)
-        self.time_text = tk.Entry(self.subframe, width=10, font=("Arial", 11))
+
+        self.time_text = tk.Entry(self.subframe, width=10, font=("Arial", 11), textvariable=variables.intervalo)
         self.time_text.grid(row=0, column=1)
+
+        self.button_send = tk.Button(self.subframe, text="enviar", height=1, command=interface.update_intervalo)
+        self.button_send.grid(row=0, column=2)
 
         # MEMÓRIA ----------------------------------------------------------------------------------------------
         self.memoria = tk.LabelFrame(self.frame, text="Memória")
@@ -188,10 +204,10 @@ class RegsAndMem:
         self.lbl_regis.grid(row=1, column=2)
 
         self.regis_table = ttk.Treeview(self.frame, columns=("address", "dado"), show="headings", height=20)
-        self.regis_table.heading("address", text="registrador")
+        self.regis_table.heading("address", text="regist")
         self.regis_table.heading("dado", text="dado")
-        self.regis_table.column("address", width=100, stretch=tk.NO, anchor="center")
-        self.regis_table.column("dado", width=100, stretch=tk.NO, anchor="center")
+        self.regis_table.column("address", width=50, stretch=tk.NO, anchor="center")
+        self.regis_table.column("dado", width=150, stretch=tk.NO, anchor="center")
         self.regis_table.grid(row=2, column=1)
         self.regis_table.tag_configure(tagname="odd", background="white")
         self.regis_table.tag_configure(tagname="even", background="lightgray")
@@ -202,8 +218,8 @@ class RegsAndMem:
         self.memor_table = ttk.Treeview(self.subframe, columns=("address", "dado"), show="headings", height=20)
         self.memor_table.heading("address", text="endereço")
         self.memor_table.heading("dado", text="dado")
-        self.memor_table.column("address", width=110, stretch=tk.NO, anchor="center")
-        self.memor_table.column("dado", width=110, stretch=tk.NO, anchor="center")
+        self.memor_table.column("address", width=80, stretch=tk.NO, anchor="center")
+        self.memor_table.column("dado", width=140, stretch=tk.NO, anchor="center")
         self.memor_table.grid(row=0, column=0)
         self.memor_table.tag_configure(tagname="odd", background="white")
         self.memor_table.tag_configure(tagname="even", background="lightgray")
@@ -218,17 +234,17 @@ class RegsAndMem:
             if i % 2 == 0:
                 temp = "even"
             if names[i] == "ma1":
-                self.regis_table.insert("", index=tk.END, values=(names[i], b10_to_b2(1, 8)), tags=temp)
+                self.regis_table.insert("", index=tk.END, values=(names[i], dec_to_arraybin(1, 16)), tags=temp)
             elif names[i] == "me1":
-                self.regis_table.insert("", index=tk.END, values=(names[i], b10_to_b2(-1, 8)), tags=temp)
+                self.regis_table.insert("", index=tk.END, values=(names[i], dec_to_arraybin(-1, 16)), tags=temp)
             else:
-                self.regis_table.insert("", index=tk.END, values=(names[i], b10_to_b2(0, 8)), tags=temp)
+                self.regis_table.insert("", index=tk.END, values=(names[i], dec_to_arraybin(0, 16)), tags=temp)
 
-        for i in range(4000):
+        for i in range(4096):
             temp = "odd"
             if i % 2 == 0:
                 temp = "even"
-            self.memor_table.insert("", index=tk.END, values=(i, ""), tags=temp)
+            self.memor_table.insert("", index=tk.END, values=(i, dec_to_arraybin(0, 16)), tags=temp)
 
 
 # ================================================= MAIN INTERFACE ============================================== #
@@ -241,6 +257,8 @@ class Interface:
     """
 
     def __init__(self):
+        self.clock = Clock()
+
         self.root = tk.Tk()  # criação da raíz onde todos os vão ser instanciados
         self.root.geometry("960x480")  # definição do tamanho da tela
         self.root.title("Simulador de Microarquitetura")  # título
@@ -258,32 +276,58 @@ class Interface:
         self.regs_and_mem = RegsAndMem(self.root, self.variables)
         self.buttons = Buttons(self.root, self.variables, self)
 
+        self.root.after(0, self.relogio())
         tk.mainloop()
 
     def ex_next(self):
-        # chamar função de executar próxima instrução
-        # fazer controle de fim de código
-        pass
+        """
+        Se o clock está pausado, avança um subciclo
+        """
+        if self.clock.paused:
+            self.clock.avanca_subciclo()
 
     def ex_restart(self):
         """
         O método ex_restart visa recomeçar a execussão do código. Para isso a memória é
         limpa com o método clear_memory() e o código é recarregado na memória com load().
+        Também pausa o clock, habilita o despause e desabilita o pause
         """
+        self.clock.subciclo_atual = 0
+        self.clock.pausa_clock()
         self.clear_memory()
         self.load(False)
+        self.buttons.button_inte.configure(state="normal")
+        self.buttons.button_paus.configure(state="disabled")
+        self.buttons.button_next.configure(state="normal")
 
     def ex_all(self):
-        # executar auto em intervalo 0
-        pass
+        """
+        Pausa o clock e entre em um loop chamando cada próximo subciclo
+        para evitar StackOverflow por recussão
+        """
+        self.clock.pausa_clock()
+        # por enquanto esse loop não pode ser quebrado, já que não
+        # há verificação de final de código
+        while True:
+            self.clock.avanca_subciclo()
 
     def ex_pause(self):
-        # pausar autoexecussão
-        pass
+        """
+        Pausa o clock, desabilita o pause e habilita o despause
+        """
+        self.clock.pausa_clock()
+        self.buttons.button_inte.configure(state="normal")
+        self.buttons.button_paus.configure(state="disabled")
+        self.buttons.button_next.configure(state="normal")
 
     def ex_nexts(self):
-        # iniciar autoexecussão
-        pass
+        """
+        Despausa o clock, desabilita o despause e habilita o pause
+        """
+        self.clock.despausa_clock()
+        self.buttons.button_inte.configure(state="disabled")
+        self.buttons.button_paus.configure(state="normal")
+        self.buttons.button_next.configure(state="disabled")
 
     def compile_and_load(self):
         """
@@ -342,11 +386,11 @@ class Interface:
         self.variables.memor_list = []
         for item in self.regs_and_mem.memor_table.get_children():
             self.regs_and_mem.memor_table.delete(item)
-        for i in range(4000):
+        for i in range(4096):
             temp = "odd"
             if i % 2 == 0:
                 temp = "even"
-            self.regs_and_mem.memor_table.insert("", index=tk.END, values=(i, ""), tags=temp)
+            self.regs_and_mem.memor_table.insert("", index=tk.END, values=(i, dec_to_arraybin(0, 16)), tags=temp)
 
     def clear_code(self):
         """
@@ -356,6 +400,28 @@ class Interface:
         self.code_edit.code_binar.configure(state="normal")
         self.code_edit.code_binar.delete("1.0", "end")
         self.code_edit.code_binar.configure(state="disabled")
+
+
+    def update_intervalo(self):
+        """
+        Atualiza o ontervalo do clock
+        """
+        self.clock.atualiza_intervalo(self.variables)
+
+
+    def relogio(self):
+
+        # configuração do botão de atualizar intervalo do relógio
+        if not self.variables.intervalo.get().isdigit():
+            self.buttons.button_send.configure(state="disabled")
+        elif self.buttons.button_send.cget("state"):
+            self.buttons.button_send.configure(state="normal")
+
+        # se não está pausado, avança o subciclo
+        if not self.clock.paused:
+            self.clock.avanca_subciclo()
+
+        self.root.after(self.clock.intervalo, self.relogio)
 
 
 interface = Interface()
