@@ -39,7 +39,7 @@ prog2 = ["START: LOCO 16",
             "JZER END",
             "JUMP LOOP",
             "END: JUMP END"]
-def gerar_e_compilar(prog):
+def gerar_e_compilar(prog, mp):
 
     # Lista com Linhas do Programa Compiladas (em Array de Arrays Binários)
     compilado = []
