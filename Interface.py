@@ -2,15 +2,12 @@
 import tkinter as tk
 from tkinter import ttk
 from ttkthemes import themed_style as ts
-from Assembly import dec_to_arraybin
+from Functions import dec_to_arraybin, arraybin_to_dec
 from Assembly import gerar_e_compilar
 from Componentes import Clock
+from Processador import Processador
 
-
-# ===================================================== FUNÇÕES ================================================= #
-def edit_row(table, address, value):
-    table.item(table.get_children()[address], values=(address, value))
-
+register_names = ["PC", "AC", "SP", "IR", "TIR", "zer", "+um", "-um", "AM", "SM", "A", "B", "C", "D", "E", "F"]
 
 # ==================================================== VARIABLES ================================================ #
 class Variables:
@@ -25,6 +22,9 @@ class Variables:
     memor_var: variável do tkinter que guarda os valores dos endereços de memória
     not_compiled: lista com as linhas de código em macroinstruções
     compiled: lista com as linhas de código em binário.
+    valido: indica se há um programa válido carregado ou se ele acabou
+    finalizado: indica se o programa acabou
+    botoes_validades: para lógica de desabilitação e habilitação dos botões
     """
 
     def __init__(self):
@@ -43,6 +43,16 @@ class Variables:
         self.not_compiled = []
         self.compiled = []
         self.var_list = []
+
+        self.valido = False
+        self.finalizado = False
+        self.botoes_validades = [
+            True, # executar proxima
+            True, # reiniciar ececussão
+            True, # executar tudo
+            False, # pausar
+            True # iniciar/despausar
+        ]
 
 
 # =================================================== CODE_EDITOR =============================================== #
@@ -117,22 +127,30 @@ class Buttons:
         self.button_inte = tk.Button(self.execussao, text="iniciar/despausar", height=1, command=interface.ex_nexts)
         self.button_inte.pack(fill="x", pady=1, padx=5)
 
+        self.exec_buttons = [
+            self.button_next,
+            self.button_rein,
+            self.button_eall,
+            self.button_paus,
+            self.button_inte
+        ]
+
         # INSTRUÇÕES ------------------------------------------------------------------------------------------
         self.instrucoes = tk.LabelFrame(self.frame, text="Instruções")
         self.instrucoes.pack(fill="x")
         self.instrucoes.configure(pady=5, padx=5)
 
         self.instr_table = ttk.Treeview(self.instrucoes, columns=("texto", "instr"), show="", height=3)
-        self.instr_table.column("texto", width=140, stretch=tk.NO, anchor="center")
-        self.instr_table.column("instr", width=140, stretch=tk.NO, anchor="center")
+        self.instr_table.column("texto", width=100, stretch=tk.NO, anchor="center")
+        self.instr_table.column("instr", width=100, stretch=tk.NO, anchor="center")
         self.instr_table.tag_configure(tagname="odd", background="white")
         self.instr_table.tag_configure(tagname="even", background="lightgray")
         self.instr_table.bind("<Button-1>", lambda event: "break")
         self.instr_table.pack()
 
         self.ciclo_table = ttk.Treeview(self.instrucoes, columns=("texto", "number"), show="", height=2)
-        self.ciclo_table.column("texto", width=140, stretch=tk.NO, anchor="center")
-        self.ciclo_table.column("number", width=140, stretch=tk.NO, anchor="center")
+        self.ciclo_table.column("texto", width=100, stretch=tk.NO, anchor="center")
+        self.ciclo_table.column("number", width=100, stretch=tk.NO, anchor="center")
         self.ciclo_table.tag_configure(tagname="odd", background="white")
         self.ciclo_table.tag_configure(tagname="even", background="lightgray")
         self.ciclo_table.bind("<Button-1>", lambda event: "break")
@@ -150,7 +168,7 @@ class Buttons:
             temp = "odd"
             if i == "":
                 temp = "even"
-            self.ciclo_table.insert("", index=tk.END, values=(campos[i], ""), tags=temp)
+            self.ciclo_table.insert("", index=tk.END, values=(campos[i], "0"), tags=temp)
 
         self.subframe = tk.Frame(self.instrucoes)
         self.subframe.pack()
@@ -228,24 +246,37 @@ class RegsAndMem:
         self.memor_table.configure(yscrollcommand=self.scroll.set)
         self.scroll.grid(row=0, column=1, sticky="ns")
 
-        names = ["ac", "pc", "mpc", "sp", "ir", "mir", "mar", "mbr", "a", "b", "c", "d", "e", "f", "ma1", "me1", "ze"]
-        for i in range(len(names)):
+        for i in range(16):
             temp = "odd"
             if i % 2 == 0:
                 temp = "even"
-            if names[i] == "ma1":
-                self.regis_table.insert("", index=tk.END, values=(names[i], dec_to_arraybin(1, 16)), tags=temp)
-            elif names[i] == "me1":
-                self.regis_table.insert("", index=tk.END, values=(names[i], dec_to_arraybin(-1, 16)), tags=temp)
-            else:
-                self.regis_table.insert("", index=tk.END, values=(names[i], dec_to_arraybin(0, 16)), tags=temp)
+            self.regis_table.insert("", index=tk.END, values=(register_names[i], dec_to_arraybin(0, 16)), tags=temp)
 
         for i in range(4096):
             temp = "odd"
             if i % 2 == 0:
                 temp = "even"
-            self.memor_table.insert("", index=tk.END, values=(i, dec_to_arraybin(0, 16)), tags=temp)
+            self.memor_table.insert("", index=tk.END, values=(i, 0), tags=temp)
 
+
+    def edit_row(self, table, address, value, regis):
+        """
+        parametro regis:
+
+        "registrador" -> usa o nome do registrador da lista de nomes com endereço address
+        na coluna esquerda
+
+        "memoria" -> usa o address como valor para a coluna da esuerda
+
+        outros valores -> o valor passado é usado na coluna da esquerda
+        """
+
+        if regis == "registrador":
+            table.item(table.get_children()[address], values=(register_names[address], value))
+        elif regis == "memoria":
+            table.item(table.get_children()[address], values=(address, value))
+        else:
+            table.item(table.get_children()[address], values=(regis, value))
 
 # ================================================= MAIN INTERFACE ============================================== #
 
@@ -256,8 +287,11 @@ class Interface:
     a classe Interface serve apenas para criar e configurar a raíz e para Unir as outras classes.
     """
 
-    def __init__(self):
-        self.clock = Clock()
+    def __init__(self, clock, process):
+        self.clock = clock
+        self.process = process
+        self.process.interface = self
+        self.clock.interface = self
 
         self.root = tk.Tk()  # criação da raíz onde todos os vão ser instanciados
         self.root.geometry("960x480")  # definição do tamanho da tela
@@ -277,6 +311,7 @@ class Interface:
         self.buttons = Buttons(self.root, self.variables, self)
 
         self.root.after(0, self.relogio())
+        self.root.after(0, self.update_interface_infos())
         tk.mainloop()
 
     def ex_next(self):
@@ -296,9 +331,10 @@ class Interface:
         self.clock.pausa_clock()
         self.clear_memory()
         self.load(False)
-        self.buttons.button_inte.configure(state="normal")
-        self.buttons.button_paus.configure(state="disabled")
-        self.buttons.button_next.configure(state="normal")
+
+        self.variables.botoes_validades[4] = True
+        self.variables.botoes_validades[3] = False
+        self.variables.botoes_validades[0] = True
 
     def ex_all(self):
         """
@@ -316,26 +352,29 @@ class Interface:
         Pausa o clock, desabilita o pause e habilita o despause
         """
         self.clock.pausa_clock()
-        self.buttons.button_inte.configure(state="normal")
-        self.buttons.button_paus.configure(state="disabled")
-        self.buttons.button_next.configure(state="normal")
+
+        self.variables.botoes_validades[4] = True
+        self.variables.botoes_validades[3] = False
+        self.variables.botoes_validades[0] = True
 
     def ex_nexts(self):
         """
         Despausa o clock, desabilita o despause e habilita o pause
         """
         self.clock.despausa_clock()
-        self.buttons.button_inte.configure(state="disabled")
-        self.buttons.button_paus.configure(state="normal")
-        self.buttons.button_next.configure(state="disabled")
+        self.variables.botoes_validades[4] = False
+        self.variables.botoes_validades[3] = True
+        self.variables.botoes_validades[0] = False
 
     def compile_and_load(self):
         """
         Esse método chama o método compile(), que se retornat True - significando que a lista de
         macroinstruções não é vazia - chama load()
         """
-        if self.compile():
+        if self.compile() and len(self.variables.compiled):
             self.load(True)
+            self.variables.valido = True
+            self.variables.finalizado = False
 
     def compile(self):
         """
@@ -356,7 +395,7 @@ class Interface:
         for _ in range(aux_list.count("")):
             aux_list.remove("")
         if aux_list:
-            self.variables.compiled, self.variables.var_list = gerar_e_compilar(aux_list)
+            self.variables.compiled, self.variables.var_list, _ = gerar_e_compilar(aux_list, self.process.mp)
             self.variables.not_compiled = aux_list
             return True
         return False
@@ -369,11 +408,14 @@ class Interface:
         em binário na área de código em binário ou não.
         """
         for i in range(len(self.variables.compiled)):
-            edit_row(self.regs_and_mem.memor_table, i, self.variables.compiled[i])
+            self.regs_and_mem.edit_row(self.regs_and_mem.memor_table, i, self.variables.compiled[i], "memoria")
         if to_bin:
             aux_str = ""
             for inst in self.variables.compiled:
-                aux_str += f"{inst}\n"
+                linha = ""
+                for bit in inst:
+                    linha += str(bit)
+                aux_str += linha + "\n"
             self.code_edit.code_binar.configure(state="normal")
             self.code_edit.code_binar.delete("1.0", "end")
             self.code_edit.code_binar.insert("1.0", aux_str)
@@ -383,6 +425,11 @@ class Interface:
         """
         Limpa a memória percorrendo todos os itens e removendo-os
         """
+        # resetar o componente
+        mp = []
+        for i in range(2 ** 12):
+            mp.append([0 for _ in range(16)])
+        # resetar na interface
         self.variables.memor_list = []
         for item in self.regs_and_mem.memor_table.get_children():
             self.regs_and_mem.memor_table.delete(item)
@@ -390,7 +437,15 @@ class Interface:
             temp = "odd"
             if i % 2 == 0:
                 temp = "even"
-            self.regs_and_mem.memor_table.insert("", index=tk.END, values=(i, dec_to_arraybin(0, 16)), tags=temp)
+            self.regs_and_mem.memor_table.insert("", index=tk.END, values=(i, 0), tags=temp)
+        # resetar as contagens de subciclo
+        self.clock.subciclo_atual = 0
+        self.clock.subciclo_total = 0
+        # atualizar subciclos na interface
+        self.regs_and_mem.edit_row(self.buttons.ciclo_table, 0, self.clock.subciclo_atual, "subciclo atual")
+        self.regs_and_mem.edit_row(self.buttons.ciclo_table, 1, self.clock.subciclo_total, "total de subciclos")
+        # programa carregado é inválido
+        self.variables.valido = False
 
     def clear_code(self):
         """
@@ -409,6 +464,32 @@ class Interface:
         self.clock.atualiza_intervalo(self.variables)
 
 
+    def update_interface_infos(self):
+        """
+        Atualiza a tabela de registradores na interface e faz a logica
+        de desativação dos botões
+        """
+        for i in range(16):
+            self.regs_and_mem.edit_row(self.regs_and_mem.regis_table, i, self.process.regis.regs[i], "registrador")
+
+        # se o PC igual ao tamanho
+        if arraybin_to_dec(self.process.regis.regs[0]) == len(self.variables.compiled) and self.variables.valido:
+            self.variables.valido = False
+            self.variables.finalizado = True
+
+        for i in range(5): # são 5 botões
+            if i != 1:
+                if self.variables.botoes_validades[i] and self.variables.valido:
+                    self.buttons.exec_buttons[i].configure(state="normal")
+                else:
+                    self.buttons.exec_buttons[i].configure(state="disabled")
+            elif self.variables.botoes_validades[i] and (self.variables.valido or self.variables.finalizado):
+                self.buttons.exec_buttons[i].configure(state="normal")
+            else:
+                self.buttons.exec_buttons[i].configure(state="disabled")
+
+        self.root.after(500, self.update_interface_infos)
+
     def relogio(self):
 
         # configuração do botão de atualizar intervalo do relógio
@@ -424,4 +505,6 @@ class Interface:
         self.root.after(self.clock.intervalo, self.relogio)
 
 
-interface = Interface()
+process = Processador()
+clock = Clock(process)
+interface = Interface(clock, process)
