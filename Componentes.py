@@ -28,8 +28,8 @@ class Registradores:
         dec_to_arraybin(0,16),  # 5 -> Zero (0)
         dec_to_arraybin(1,16),  # 6 -> Mais-um (+1)
         dec_to_arraybin(-1,16),  # 7 -> Menos-um (-1)
-        [],  # 8 -> AM: AMASK
-        [],  # 9 -> SM: SMASK
+        dec_to_arraybin(4095, 16),  # 8 -> AM: AMASK
+        dec_to_arraybin(255, 16),  # 9 -> SM: SMASK
         [],  # 10 -> A
         [],  # 11 -> B
         [],  # 12 -> C
@@ -206,9 +206,11 @@ class Decoders:
 # Classe referente ao Relógio para temporização em Ciclos e Subciclos
 # 1 Ciclo = 4 Subciclos
 class Clock:
-    def __init__(self):
+    def __init__(self, process):
         self.ciclo_atual = 0
         self.subciclo_atual = 0
+        self.subciclo_total = 0
+        self.interface = None
 
         self.intervalo = 1000
         self.paused = True
@@ -216,16 +218,21 @@ class Clock:
 
         # trocar as funções lambda pelas funções de subciclo
         self.subciclos = [
-            lambda: print("chamar subciclo 1"),
-            lambda: print("chamar subciclo  2"),
-            lambda: print("chamar subciclo   3"),
-            lambda: print("chamar subciclo    4")
+            process.subciclo_1,
+            process.subciclo_2,
+            process.subciclo_3,
+            process.subciclo_4
         ]
 
     def avanca_subciclo(self):
         self.subciclo_atual += 1
+        self.subciclo_total += 1
         if self.subciclo_atual == 4:
             self.subciclo_atual = 0
+            self.ciclo_atual += 1
+        # atualizar subciclos na interface
+        self.interface.regs_and_mem.edit_row(self.interface.buttons.ciclo_table, 0, self.subciclo_atual, "subciclo atual")
+        self.interface.regs_and_mem.edit_row(self.interface.buttons.ciclo_table, 1, self.subciclo_total, "total de subciclos")
         # chamada da sub-rotina de subciclo
         self.subciclos[self.subciclo_atual-1]()
 
