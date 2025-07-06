@@ -22,7 +22,7 @@ class Registradores:
         self.regs = [
         dec_to_arraybin(0,16),  # 0 -> PC: Program Counter
         [],  # 1 -> AC: Acumulador
-        dec_to_arraybin(4095,16),  # 2 -> SP: Stack Pointer
+        dec_to_arraybin(4096,16),  # 2 -> SP: Stack Pointer
         [],  # 3 -> IR: Instruction Register
         [],  # 4 -> TIR:
         dec_to_arraybin(0,16),  # 5 -> Zero (0)
@@ -42,8 +42,8 @@ class Registradores:
         MAR: recebe valor apenas de Latch B, guarda bit da UC
         MBR: recebe valor do Deslocador e joga valor para AMUX, guarda bit da UC 
         '''
-        self.mar = (0,[])  # Registrador de Endereços (Memory Adress Register)
-        self.mbr = (0,[])  # Registrador de Dados (Memory Buffer Register)
+        self.mar = []  # Registrador de Endereços (Memory Adress Register)
+        self.mbr = []  # Registrador de Dados (Memory Buffer Register)
 
         '''
             Registradores de transição, associados à ULA:
@@ -74,14 +74,14 @@ class Registradores:
         if self.AMUX[0] == 0:
             self.AMUX[1] = self.latchA
         if self.AMUX[0] == 1:
-            self.AMUX[1] = self.mbr[1]
+            self.AMUX[1] = self.mbr
 
     # Função que definirá o valor de MMUX (MPC + 1 ou ADDR)
     # Cond_log = 0 -> MMUX = MPC + 1
     # Cond_log = 1 -> MMUX = ADDR
     def valor_MMUX(self):
         if self.MMUX == 0:
-            self.mpc = soma_ULA(self.mpc, self.regs[6])
+            self.mpc = soma_ULA(self.mpc, dec_to_arraybin(1,8))
         if self.MMUX == 1:
             self.mpc = self.mir[24:]
 
@@ -271,21 +271,24 @@ class CaixaLogica:
 
     # Função que define retorno lógico que define valor de MMUX
     def logicar(self):
+        # Não Desvia
         if self.COND == [0,0]:
             self.retorno = 0
 
-        if self.COND == [0,1] and self.d[0] == 1:
+        # Desvia se N = 1
+        elif self.COND == [0,1] and self.d[0] == 1:
             self.retorno = 1
+
+        # Desvia se Z = 1
+        elif self.COND == [1,0] and self.d[1] == 1:
+            self.retorno = 1
+    
+        # Desvia
+        elif self.COND == [1,1]:
+            self.retorno = 1
+        
         else:
             self.retorno = 0
-
-        if self.COND == [1,0] and self.d[1] == 1:
-            self.retorno = 1
-        else:
-            self.retorno = 0
-
-        if self.COND == [1,1]:
-            self.retorno = 1
 
 # Memória de Controle
 # Contém as 79 Microinstruções em Binário (32 bits) seguindo a seguinte ordem:
@@ -296,9 +299,9 @@ AMUX / COND / ULA / DESL / MBR / MAR / RD / WR / EnC / Bar.C / Bar.B / Bar.A / A
  (0)/ (1,2)/ (3,4)/ (5,6)/ (7)/  (8)/ (9) /(10) /(11) /(12-15)/(16-19)/(20-23)/(24-31)
 '''
 mc = (
-#                            	    1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 3 3
-#        	0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-        	[0,0,0,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],  # 0
+#                                    1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 3 3
+#                0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+                [0,0,0,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],  # 0
 		[0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0],  # 1
 		[1,0,1,1,0,0,0,0,0,0,0,1,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0],  # 2
 		[0,0,1,0,0,1,0,0,0,0,0,1,0,1,0,0,0,0,1,1,0,0,1,1,0,0,0,1,0,0,1,1],  # 3
@@ -345,7 +348,7 @@ mc = (
 		[0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0], # 44
 		[0,1,1,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0], # 45
 		[0,0,1,1,0,1,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,1,0,0,0,0,1,1,0,0,1,0], # 46
-	    	[0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,1,0,0,1,1,1,0,0,0,0,0,0,0,0], # 47
+	        [0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,1,0,0,1,1,1,0,0,0,0,0,0,0,0], # 47
 		[0,0,0,1,0,0,0,1,1,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0], # 48
 		[0,1,1,0,1,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0], # 49
 		[0,0,1,1,0,1,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,1], # 50
@@ -378,3 +381,4 @@ mc = (
 		[0,0,0,1,1,0,0,0,0,0,0,1,1,0,1,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0],  # 77
 		[0,1,1,0,0,0,0,0,0,0,0,1,1,0,1,0,1,0,1,0,0,1,1,0,0,1,0,0,1,0,1,1]  # 78
 )
+
