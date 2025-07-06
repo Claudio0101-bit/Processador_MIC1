@@ -451,6 +451,10 @@ class Interface:
         self.regs_and_mem.edit_row(self.buttons.ciclo_table, 0, self.clock.subciclo_atual, "subciclo atual")
         self.regs_and_mem.edit_row(self.buttons.ciclo_table, 1, self.clock.subciclo_total, "total de subciclos")
 
+        # atualizar macroinstrução e microinstrução mostradas
+        self.regs_and_mem.edit_row(self.buttons.instr_table, 0, "", "macro")
+        self.regs_and_mem.edit_row(self.buttons.instr_table, 1, "", "micro")
+
         # programa carregado é inválido
         self.variables.valido = False
 
