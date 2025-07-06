@@ -1,4 +1,4 @@
-prog 1: Soma de quadrados
+prog 1: Soma de quadrados direta
 
 START: LOCO 1
        STOD 30
@@ -32,3 +32,46 @@ PART3: LODD 32
        ADDD 35
        STOD 37
 END:   JUMP END
+
+Prog 2: Soma de quadrados local
+
+START: LOCO 1
+       STOD 35
+       LOCO 4
+       STOD 36
+       STOL -3
+
+LOOP1: SUBD 35
+       PUSH
+       JZER PART2
+       LODL -2
+       ADDD 36
+       STOL -2
+       POP
+       JUMP LOOP1
+
+PART2: LOCO 0
+       SWAP
+       LOCO 6
+       STOD 39
+       STOL -5
+
+LOOP2: SUBD 35
+       PUSH
+       JZER PART3
+       LODL -4
+       ADDD 39
+       STOL -4
+       POP
+       JUMP LOOP2
+
+PART3: LOCO 0
+       SWAP
+       LOCO 0
+       SWAP
+       LOCO 0
+       LODL -3
+       ADDL -5
+END: STOD 40
+       JUMP END
+
