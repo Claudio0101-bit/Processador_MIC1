@@ -227,8 +227,8 @@ class Clock:
     def avanca_subciclo(self):
         self.subciclo_atual += 1
         self.subciclo_total += 1
-        if self.subciclo_atual == 4:
-            self.subciclo_atual = 0
+        if self.subciclo_atual == 5:
+            self.subciclo_atual = 1
             self.ciclo_atual += 1
         # atualizar subciclos na interface
         self.interface.regs_and_mem.edit_row(self.interface.buttons.ciclo_table, 0, self.subciclo_atual, "subciclo atual")
