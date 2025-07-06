@@ -67,6 +67,11 @@ class Processador:
         #print("MMUX:", self.regis.MMUX)
         self.regis.valor_MMUX()
         #print("MPC:", self.regis.mpc, "- i:", arraybin_to_dec(self.regis.mpc))
+
+
+        # atualizar microinst atual na interface
+        self.interface.regs_and_mem.edit_row(self.interface.buttons.instr_table, 1,
+                                             micro_inst_text[arraybin_to_dec(self.regis.mpc)], "micro")
         
         
         # Bit para MAR = 1 -> MAR := Valor de LatchB
@@ -103,3 +108,11 @@ class Processador:
         # En.C = 1 -> Registrador[Decoder C] := Valor de Deslocador
         if self.regis.mir[11] == 1:
             self.regis.regs[arraybin_to_dec(self.decoders.c[1:])] = self.deslocador.a
+
+            # atualizar macroinstrução atual na interface
+            self.interface.regs_and_mem.edit_row(
+                self.interface.buttons.instr_table,
+                0,
+                self.interface.variables.not_compiled[arraybin_to_dec(self.regis.regs[0])],
+                "macro"
+            )
