@@ -407,6 +407,8 @@ class Interface:
         compilado em code_area.code_binar. A variável to_bin diz se a função deve colocar o código
         em binário na área de código em binário ou não.
         """
+        if len(self.variables.compiled):
+            self.variables.valido = True
         for i in range(len(self.variables.compiled)):
             self.regs_and_mem.edit_row(self.regs_and_mem.memor_table, i, self.variables.compiled[i], "memoria")
         if to_bin:
@@ -424,11 +426,13 @@ class Interface:
     def clear_memory(self):
         """
         Limpa a memória percorrendo todos os itens e removendo-os
+        Também reseta os registradores
         """
-        # resetar o componente
-        mp = []
+        # resetar o componente da memória
+        self.process.mp = []
         for i in range(2 ** 12):
-            mp.append([0 for _ in range(16)])
+            self.process.mp.append([0 for _ in range(16)])
+
         # resetar na interface
         self.variables.memor_list = []
         for item in self.regs_and_mem.memor_table.get_children():
@@ -438,14 +442,22 @@ class Interface:
             if i % 2 == 0:
                 temp = "even"
             self.regs_and_mem.memor_table.insert("", index=tk.END, values=(i, 0), tags=temp)
+
         # resetar as contagens de subciclo
         self.clock.subciclo_atual = 0
         self.clock.subciclo_total = 0
+
         # atualizar subciclos na interface
         self.regs_and_mem.edit_row(self.buttons.ciclo_table, 0, self.clock.subciclo_atual, "subciclo atual")
         self.regs_and_mem.edit_row(self.buttons.ciclo_table, 1, self.clock.subciclo_total, "total de subciclos")
+
         # programa carregado é inválido
         self.variables.valido = False
+
+        # rresetar os registradores
+        self.process.regis.__init__()
+
+
 
     def clear_code(self):
         """
@@ -471,11 +483,6 @@ class Interface:
         """
         for i in range(16):
             self.regs_and_mem.edit_row(self.regs_and_mem.regis_table, i, self.process.regis.regs[i], "registrador")
-
-        # se o PC igual ao tamanho
-        if arraybin_to_dec(self.process.regis.regs[0]) == len(self.variables.compiled) and self.variables.valido:
-            self.variables.valido = False
-            self.variables.finalizado = True
 
         for i in range(5): # são 5 botões
             if i != 1:
