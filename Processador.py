@@ -61,14 +61,25 @@ class Processador:
         self.deslocador.deslocar()
 
         # Caixa Lógica recebe Status D, realiza lógica e manda para MMUX
-        # MMUX já determina próximo valor de MPC
         self.logica.setD(self.ula.d)
         self.logica.logicar()
         self.regis.MMUX = self.logica.retorno
-        #print("MMUX:", self.regis.MMUX)
+        
+        
+        if self.regis.mpc == dec_to_arraybin(0,8):
+            # atualizar macroinstrução atual na interface
+            self.interface.regs_and_mem.edit_row(
+                self.interface.buttons.instr_table,
+                0,
+                self.interface.variables.not_compiled[arraybin_to_dec(self.regis.regs[0])],
+                "macro"
+                )
+        
+        # MMUX já determina próximo valor de MPC
         self.regis.valor_MMUX()
-        #print("MPC:", self.regis.mpc, "- i:", arraybin_to_dec(self.regis.mpc))
-
+        
+        
+        
 
         # atualizar microinst atual na interface
         self.interface.regs_and_mem.edit_row(self.interface.buttons.instr_table, 1,
@@ -77,10 +88,7 @@ class Processador:
         
         # Bit para MAR = 1 -> MAR := Valor de LatchB
         if self.regis.mir[8] == 1:
-            #rint("Entrou no Bit do MAR")
-            #print("MIR:", self.regis.mir)
             self.regis.mar = self.regis.latchB
-            #print("MAR:", self.regis.mar)
             
 
         # RD = 1 -> MBR := MP[MAR] (Leitura da Memória Principal)
@@ -98,8 +106,6 @@ class Processador:
 
         # WR = 1 -> MP[MAR] := MBR (Escrita na Memória)
         if self.regis.mir[10] == 1:
-            #print("Onde deu Erro")
-            #print("MAR:", self.regis.mar)
             index = arraybin_to_dec(self.regis.mar[4:])
             self.mp[index] = self.regis.mbr
 
@@ -109,11 +115,3 @@ class Processador:
         # En.C = 1 -> Registrador[Decoder C] := Valor de Deslocador
         if self.regis.mir[11] == 1:
             self.regis.regs[arraybin_to_dec(self.decoders.c[1:])] = self.deslocador.a
-
-            # atualizar macroinstrução atual na interface
-            self.interface.regs_and_mem.edit_row(
-                self.interface.buttons.instr_table,
-                0,
-                self.interface.variables.not_compiled[arraybin_to_dec(self.regis.regs[0])],
-                "macro"
-            )
