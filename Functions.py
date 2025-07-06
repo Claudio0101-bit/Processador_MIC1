@@ -103,12 +103,10 @@ def inv_ULA(a):
 
     # Invertendo os bits do Array dado
     a_inv = [1 - b for b in a]
+    
 
-    # Somando 1 usando Função de Soma da ULA
-    mais1 = [0 for i in range(len(a))]
-    mais1[-1] = 1
-
-    return soma_ULA(a_inv, mais1)
+    # Retornando o Array Binário invertido
+    return a_inv
 
 def status_ULA(r):
     # Status D = [N, Z]
