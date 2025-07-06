@@ -33,6 +33,7 @@ class Processador:
         self.decoders.c = self.regis.mir[11:16]
         self.decoders.b = self.regis.mir[16:20]
         self.decoders.a = self.regis.mir[20:24]
+        # Bits 24 até 31 -> ADDR
 
 
     def subciclo_2(self):
@@ -41,6 +42,7 @@ class Processador:
         # Latchs recebem valores de Registradores da Via de Dados
         self.regis.latchA = self.regis.regs[arraybin_to_dec(self.decoders.a)]
         self.regis.latchB = self.regis.regs[arraybin_to_dec(self.decoders.b)]
+
 
         # Calculado valor de AMUX:
         self.regis.valor_AMUX()
@@ -62,34 +64,42 @@ class Processador:
         self.logica.setD(self.ula.d)
         self.logica.logicar()
         self.regis.MMUX = self.logica.retorno
+        #print("MMUX:", self.regis.MMUX)
         self.regis.valor_MMUX()
+        #print("MPC:", self.regis.mpc, "- i:", arraybin_to_dec(self.regis.mpc))
+        
+        
+        # Bit para MAR = 1 -> MAR := Valor de LatchB
+        if self.regis.mir[8] == 1:
+            #rint("Entrou no Bit do MAR")
+            #print("MIR:", self.regis.mir)
+            self.regis.mar = self.regis.latchB
+            #print("MAR:", self.regis.mar)
+            
 
-        # RD = 1
+        # RD = 1 -> MBR := MP[MAR] (Leitura da Memória Principal)
         if self.regis.mir[9] == 1:
-
-            # Bit para MAR = 1 -> MAR := Valor de LatchB
-            if self.regis.mir[8] == 1:
-                self.regis.mar = self.regis.latchB
-                self.regis.mbr = self.mp[arraybin_to_dec(self.regis.mar)]
+            self.regis.mbr = self.mp[arraybin_to_dec(self.regis.mar[4:])]
 
     def subciclo_4(self):
-        # ======================== Subciclo 4: Gravação o resultado ========================
+        # ======================== Subciclo 4: Gravação do resultado ========================
 
         # Diferentes Gravações de Resultados
-
-        # WR = 1
-        if self.regis.mir[10] == 1:
-
-            # Bit para MBR = 1 -> MBR := Valor de Deslocador
-            # MP[MAR] := MBR
-            if self.regis.mir[7] == 1:
+        
+        # Bit para MBR = 1 -> MBR := Valor de Deslocador
+        if self.regis.mir[7] == 1:
                 self.regis.mbr = self.deslocador.a
-                index = arraybin_to_dec(self.regis.mar)
-                self.mp[index] = self.regis.mbr
 
-                # atualizar na interface
-                self.interface.regs_and_mem.edit_row(self.interface.regs_and_mem.memor_table, index, arraybin_to_dec(self.regis.mbr), "memoria")
+        # WR = 1 -> MP[MAR] := MBR (Escrita na Memória)
+        if self.regis.mir[10] == 1:
+            #print("Onde deu Erro")
+            #print("MAR:", self.regis.mar)
+            index = arraybin_to_dec(self.regis.mar[4:])
+            self.mp[index] = self.regis.mbr
+
+            # atualizar na interface
+            self.interface.regs_and_mem.edit_row(self.interface.regs_and_mem.memor_table, index, arraybin_to_dec(self.regis.mbr), "memoria")
 
         # En.C = 1 -> Registrador[Decoder C] := Valor de Deslocador
         if self.regis.mir[11] == 1:
-            self.regis.regs[arraybin_to_dec(self.decoders.c)] = self.deslocador.a
+            self.regis.regs[arraybin_to_dec(self.decoders.c[1:])] = self.deslocador.a
