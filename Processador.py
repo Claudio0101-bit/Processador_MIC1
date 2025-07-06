@@ -1,5 +1,6 @@
 from Componentes import *
 from Functions import arraybin_to_dec
+from ISA_MIC1 import micro_inst_text
 
 
 class Processador:
