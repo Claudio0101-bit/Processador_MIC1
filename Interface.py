@@ -110,7 +110,7 @@ class Buttons:
         # EXECUÇÃO --------------------------------------------------------------------------------------
         self.execussao = tk.LabelFrame(self.frame, text="Execussão")
         self.execussao.pack(fill="x")
-        self.execussao.configure(pady=1)
+        self.execussao.configure(pady=5)
 
         self.button_next = tk.Button(self.execussao, text="executar próxima", height=1, command=interface.ex_next)
         self.button_next.pack(fill="x", pady=1, padx=5)
@@ -136,13 +136,13 @@ class Buttons:
         ]
 
         # INSTRUÇÕES ------------------------------------------------------------------------------------------
-        self.instrucoes = tk.LabelFrame(self.frame, text="Instruções")
+        self.instrucoes = tk.LabelFrame(self.frame, text="Instrução atual")
         self.instrucoes.pack(fill="x")
         self.instrucoes.configure(pady=5, padx=5)
 
-        self.instr_table = ttk.Treeview(self.instrucoes, columns=("texto", "instr"), show="", height=3)
-        self.instr_table.column("texto", width=100, stretch=tk.NO, anchor="center")
-        self.instr_table.column("instr", width=100, stretch=tk.NO, anchor="center")
+        self.instr_table = ttk.Treeview(self.instrucoes, columns=("texto", "instr"), show="", height=2)
+        self.instr_table.column("texto", width=50, stretch=tk.NO, anchor="center")
+        self.instr_table.column("instr", width=150, stretch=tk.NO, anchor="center")
         self.instr_table.tag_configure(tagname="odd", background="white")
         self.instr_table.tag_configure(tagname="even", background="lightgray")
         self.instr_table.bind("<Button-1>", lambda event: "break")
@@ -156,7 +156,7 @@ class Buttons:
         self.ciclo_table.bind("<Button-1>", lambda event: "break")
         self.ciclo_table.pack()
 
-        campos = ["macroinst atual", "ultima microinst", "proxima microinst"]
+        campos = ["macro", "micro"]
         for i in range(len(campos)):
             temp = "odd"
             if i == "":
@@ -185,7 +185,7 @@ class Buttons:
         # MEMÓRIA ----------------------------------------------------------------------------------------------
         self.memoria = tk.LabelFrame(self.frame, text="Memória")
         self.memoria.pack(fill="x")
-        self.memoria.configure(pady=1)
+        self.memoria.configure(pady=5)
 
         self.button_comp = tk.Button(self.memoria, text="compilar e carregar", height=1,
                                      command=interface.compile_and_load)
