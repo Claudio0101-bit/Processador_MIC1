@@ -1,0 +1,34 @@
+prog 1: Soma de quadrados
+
+START: LOCO 1
+       STOD 30
+       LOCO 4
+       STOD 31
+       STOD 32
+
+LOOP1: SUBD 30
+       STOD 33
+       JZER PART2
+       LODD 32
+       ADDD 31
+       STOD 32
+       LODD 33
+       JUMP LOOP1
+
+PART2: LOCO 6
+       STOD 34
+       STOD 35
+
+LOOP2: SUBD 30
+       STOD 36
+       JZER PART3
+       LODD 35
+       ADDD 34
+       STOD 35
+       LODD 36
+       JUMP LOOP2
+
+PART3: LODD 32
+       ADDD 35
+       STOD 37
+END:   JUMP END

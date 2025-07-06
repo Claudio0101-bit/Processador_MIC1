@@ -64,9 +64,8 @@ class Processador:
         self.logica.setD(self.ula.d)
         self.logica.logicar()
         self.regis.MMUX = self.logica.retorno
-        
-        
-        if self.regis.mpc == dec_to_arraybin(0,8):
+
+        if self.regis.mpc == dec_to_arraybin(0, 8):
             # atualizar macroinstrução atual na interface
             self.interface.regs_and_mem.edit_row(
                 self.interface.buttons.instr_table,

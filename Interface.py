@@ -368,7 +368,7 @@ class Interface:
 
     def compile_and_load(self):
         """
-        Esse método chama o método compile(), que se retornat True - significando que a lista de
+        Esse método chama o método compile(), que se retornar True - significando que a lista de
         macroinstruções não é vazia - chama load()
         """
         if self.compile() and len(self.variables.compiled):
@@ -413,6 +413,10 @@ class Interface:
             self.regs_and_mem.edit_row(self.regs_and_mem.memor_table, i, self.variables.compiled[i], "memoria")
         if to_bin:
             aux_str = ""
+
+
+
+
             for inst in self.variables.compiled:
                 linha = ""
                 for bit in inst:

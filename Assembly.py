@@ -119,7 +119,7 @@ def gerar_e_compilar(prog, mp):
     return compilado, variaveis, flags
 
 # Testando se a Função está funcionando com Prog2
-compilado, variaveis, flags = gerar_e_compilar(prog2)
+compilado, variaveis, flags = gerar_e_compilar(prog2,mp)
 
 print("Variáveis geradas: ", variaveis)
 print("-------------------------------------------------")
