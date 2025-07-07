@@ -50,7 +50,7 @@ LOOP1: SUBD 35
        POP
        JUMP LOOP1
 
-PART2: LOCO 0
+PART2: LOCO 4096
        SWAP
        LOCO 6
        STOD 39
@@ -65,13 +65,10 @@ LOOP2: SUBD 35
        POP
        JUMP LOOP2
 
-PART3: LOCO 0
+PART3: LOCO 4096
        SWAP
-       LOCO 0
-       SWAP
-       LOCO 0
        LODL -3
        ADDL -5
-END: STOD 40
-       JUMP END
+       STOD 40
+END: JUMP END
 
