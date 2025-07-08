@@ -2,7 +2,7 @@
 import tkinter as tk
 from tkinter import ttk
 from ttkthemes import themed_style as ts
-from Functions import dec_to_arraybin, arraybin_to_dec
+from Functions import dec_to_arraybin
 from Assembly import gerar_e_compilar
 from Componentes import Clock
 from Processador import Processador
@@ -49,7 +49,6 @@ class Variables:
         self.botoes_validades = [
             True, # executar proxima
             True, # reiniciar ececussão
-            True, # executar tudo
             False, # pausar
             True # iniciar/despausar
         ]
@@ -118,10 +117,7 @@ class Buttons:
         self.button_rein = tk.Button(self.execussao, text="reiniciar execussão", height=1, command=interface.ex_restart)
         self.button_rein.pack(fill="x", pady=1, padx=5)
 
-        self.button_eall = tk.Button(self.execussao, text="executar tudo", height=1, command=interface.ex_all)
-        self.button_eall.pack(fill="x", pady=1, padx=5)
-
-        self.button_paus = tk.Button(self.execussao, text="pausar execussão", height=1, command=interface.ex_pause, state="disabled")
+        self.button_paus = tk.Button(self.execussao, text="pausar execussão", height=1, command=interface.ex_pause)
         self.button_paus.pack(fill="x", pady=1, padx=5)
 
         self.button_inte = tk.Button(self.execussao, text="iniciar/despausar", height=1, command=interface.ex_nexts)
@@ -130,7 +126,6 @@ class Buttons:
         self.exec_buttons = [
             self.button_next,
             self.button_rein,
-            self.button_eall,
             self.button_paus,
             self.button_inte
         ]
@@ -332,20 +327,10 @@ class Interface:
         self.clear_memory()
         self.load(False)
 
-        self.variables.botoes_validades[4] = True
-        self.variables.botoes_validades[3] = False
+        self.variables.botoes_validades[3] = True
+        self.variables.botoes_validades[2] = False
         self.variables.botoes_validades[0] = True
 
-    def ex_all(self):
-        """
-        Pausa o clock e entre em um loop chamando cada próximo subciclo
-        para evitar StackOverflow por recussão
-        """
-        self.clock.pausa_clock()
-        # por enquanto esse loop não pode ser quebrado, já que não
-        # há verificação de final de código
-        while True:
-            self.clock.avanca_subciclo()
 
     def ex_pause(self):
         """
@@ -353,8 +338,8 @@ class Interface:
         """
         self.clock.pausa_clock()
 
-        self.variables.botoes_validades[4] = True
-        self.variables.botoes_validades[3] = False
+        self.variables.botoes_validades[3] = True
+        self.variables.botoes_validades[2] = False
         self.variables.botoes_validades[0] = True
 
     def ex_nexts(self):
@@ -362,13 +347,13 @@ class Interface:
         Despausa o clock, desabilita o despause e habilita o pause
         """
         self.clock.despausa_clock()
-        self.variables.botoes_validades[4] = False
-        self.variables.botoes_validades[3] = True
+        self.variables.botoes_validades[3] = False
+        self.variables.botoes_validades[2] = True
         self.variables.botoes_validades[0] = False
 
     def compile_and_load(self):
         """
-        Esse método chama o método compile(), que se retornar True - significando que a lista de
+        Esse método chama o método compile(), que se retornat True - significando que a lista de
         macroinstruções não é vazia - chama load()
         """
         if self.compile() and len(self.variables.compiled):
@@ -413,10 +398,6 @@ class Interface:
             self.regs_and_mem.edit_row(self.regs_and_mem.memor_table, i, self.variables.compiled[i], "memoria")
         if to_bin:
             aux_str = ""
-
-
-
-
             for inst in self.variables.compiled:
                 linha = ""
                 for bit in inst:
@@ -492,7 +473,7 @@ class Interface:
         for i in range(16):
             self.regs_and_mem.edit_row(self.regs_and_mem.regis_table, i, self.process.regis.regs[i], "registrador")
 
-        for i in range(5): # são 5 botões
+        for i in range(4): # são 4 botões
             if i != 1:
                 if self.variables.botoes_validades[i] and self.variables.valido:
                     self.buttons.exec_buttons[i].configure(state="normal")
@@ -510,6 +491,8 @@ class Interface:
         # configuração do botão de atualizar intervalo do relógio
         if not self.variables.intervalo.get().isdigit():
             self.buttons.button_send.configure(state="disabled")
+        elif int(self.variables.intervalo.get()) == 0:
+            self.buttons.button_send.configure(state="disabled")
         elif self.buttons.button_send.cget("state"):
             self.buttons.button_send.configure(state="normal")
 
@@ -523,3 +506,4 @@ class Interface:
 process = Processador()
 clock = Clock(process)
 interface = Interface(clock, process)
+
