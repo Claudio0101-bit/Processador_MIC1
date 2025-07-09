@@ -65,13 +65,32 @@ class Processador:
         self.logica.logicar()
         self.regis.MMUX = self.logica.retorno
 
+        # IDENTIFICAÇÃO DE PARADA E ATUALIZÇÃO DE INFORMAÇÕES DA INTERFACE
         if self.regis.mpc == dec_to_arraybin(0, 8):
-            # atualizar macroinstrução atual na interface
-            self.interface.regs_and_mem.edit_row(
-                self.interface.buttons.instr_table,
-                0,
-                self.interface.variables.not_compiled[arraybin_to_dec(self.regis.regs[0])],
-                "macro"
+
+            # se o PC aponta para fora do programa
+            print(arraybin_to_dec(self.regis.regs[0]), len(self.interface.variables.not_compiled))
+            if arraybin_to_dec(self.regis.regs[0]) == len(self.interface.variables.not_compiled):
+                # pause e marque o programa como finalizado
+                self.interface.ex_pause()
+                self.interface.variables.finalizado = True
+                self.interface.variables.valido = False
+                # atualizar macroinstrução (FINALIZADO) atual na interface
+                self.interface.regs_and_mem.edit_row(
+                    self.interface.buttons.instr_table,
+                    0,
+                    "FINALIZADO",
+                    "macro"
+                )
+
+            # se aponta para um local válido
+            else:
+                # atualizar macroinstrução atual na interface
+                self.interface.regs_and_mem.edit_row(
+                    self.interface.buttons.instr_table,
+                    0,
+                    self.interface.variables.not_compiled[arraybin_to_dec(self.regis.regs[0])],
+                    "macro"
                 )
         
         # MMUX já determina próximo valor de MPC
