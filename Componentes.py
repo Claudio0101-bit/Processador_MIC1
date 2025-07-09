@@ -207,7 +207,7 @@ class Decoders:
 # 1 Ciclo = 4 Subciclos
 class Clock:
     def __init__(self, process):
-        self.ciclo_atual = 0
+        self.ciclo_total = 0
         self.subciclo_atual = 0
         self.subciclo_total = 0
         self.interface = None
@@ -226,12 +226,13 @@ class Clock:
     def avanca_subciclo(self):
         self.subciclo_atual += 1
         self.subciclo_total += 1
+        if self.subciclo_atual == 4:
+            self.ciclo_total += 1
         if self.subciclo_atual == 5:
             self.subciclo_atual = 1
-            self.ciclo_atual += 1
         # atualizar subciclos na interface
         self.interface.regs_and_mem.edit_row(self.interface.buttons.ciclo_table, 0, self.subciclo_atual, "subciclo atual")
-        self.interface.regs_and_mem.edit_row(self.interface.buttons.ciclo_table, 1, self.subciclo_total, "total de subciclos")
+        self.interface.regs_and_mem.edit_row(self.interface.buttons.ciclo_table, 1, self.ciclo_total, "total de ciclos")
         # chamada da sub-rotina de subciclo
         self.subciclos[self.subciclo_atual-1]()
 
