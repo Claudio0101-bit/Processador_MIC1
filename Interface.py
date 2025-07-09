@@ -7,7 +7,8 @@ from Assembly import gerar_e_compilar
 from Componentes import Clock
 from Processador import Processador
 
-register_names = ["PC", "AC", "SP", "IR", "TIR", "zer", "+um", "-um", "AM", "SM", "A", "B", "C", "D", "E", "F"]
+register_names = ["PC", "AC", "SP", "IR", "TIR", "zer", "+um", "-um", "AM", "SM", "A",
+                  "B", "C", "D", "E", "F", "AMUX", "LA", "LB", "MAR", "MBR", "MPC"]
 
 # ==================================================== VARIABLES ================================================ #
 class Variables:
@@ -206,7 +207,7 @@ class RegsAndMem:
     e todos esses Widgets estão em grid 2x3 num Frame.
     """
 
-    def __init__(self, root, variables):
+    def __init__(self, root):
         self.frame = tk.Frame(root, borderwidth=1)
         self.frame.place(x=500, y=10, width=450, height=450)
 
@@ -229,10 +230,10 @@ class RegsAndMem:
         self.subframe.grid(row=2, column=2)
 
         self.memor_table = ttk.Treeview(self.subframe, columns=("address", "dado"), show="headings", height=20)
-        self.memor_table.heading("address", text="endereço")
+        self.memor_table.heading("address", text="enderec")
         self.memor_table.heading("dado", text="dado")
-        self.memor_table.column("address", width=80, stretch=tk.NO, anchor="center")
-        self.memor_table.column("dado", width=140, stretch=tk.NO, anchor="center")
+        self.memor_table.column("address", width=50, stretch=tk.NO, anchor="center")
+        self.memor_table.column("dado", width=170, stretch=tk.NO, anchor="center")
         self.memor_table.grid(row=0, column=0)
         self.memor_table.tag_configure(tagname="odd", background="white")
         self.memor_table.tag_configure(tagname="even", background="lightgray")
@@ -241,11 +242,18 @@ class RegsAndMem:
         self.memor_table.configure(yscrollcommand=self.scroll.set)
         self.scroll.grid(row=0, column=1, sticky="ns")
 
+        # inserir os 16 registradores em lista
         for i in range(16):
             temp = "odd"
             if i % 2 == 0:
                 temp = "even"
             self.regis_table.insert("", index=tk.END, values=(register_names[i], dec_to_arraybin(0, 16)), tags=temp)
+        self.regis_table.insert("", index=tk.END, values=(register_names[16], dec_to_arraybin(0, 16)), tags="even")
+        self.regis_table.insert("", index=tk.END, values=(register_names[17], dec_to_arraybin(0, 16)), tags="odd")
+        self.regis_table.insert("", index=tk.END, values=(register_names[18], dec_to_arraybin(0, 16)), tags="even")
+        self.regis_table.insert("", index=tk.END, values=(register_names[19], dec_to_arraybin(0, 16)), tags="odd")
+        self.regis_table.insert("", index=tk.END, values=(register_names[20], dec_to_arraybin(0, 16)), tags="even")
+        self.regis_table.insert("", index=tk.END, values=(register_names[21], dec_to_arraybin(0, 16)), tags="odd")
 
         for i in range(4096):
             temp = "odd"
@@ -302,7 +310,7 @@ class Interface:
 
         self.variables = Variables()
         self.code_edit = CodeEditor(self.root)
-        self.regs_and_mem = RegsAndMem(self.root, self.variables)
+        self.regs_and_mem = RegsAndMem(self.root)
         self.buttons = Buttons(self.root, self.variables, self)
 
         self.root.after(0, self.relogio())
@@ -472,8 +480,14 @@ class Interface:
         Atualiza a tabela de registradores na interface e faz a logica
         de desativação dos botões
         """
-        for i in range(16):
+        for i in range(16): # 22 registradores
             self.regs_and_mem.edit_row(self.regs_and_mem.regis_table, i, self.process.regis.regs[i], "registrador")
+        self.regs_and_mem.edit_row(self.regs_and_mem.regis_table, 16, self.process.regis.AMUX[1], "registrador")
+        self.regs_and_mem.edit_row(self.regs_and_mem.regis_table, 17, self.process.regis.latchA, "registrador")
+        self.regs_and_mem.edit_row(self.regs_and_mem.regis_table, 18, self.process.regis.latchB, "registrador")
+        self.regs_and_mem.edit_row(self.regs_and_mem.regis_table, 19, self.process.regis.mar, "registrador")
+        self.regs_and_mem.edit_row(self.regs_and_mem.regis_table, 20, self.process.regis.mbr, "registrador")
+        self.regs_and_mem.edit_row(self.regs_and_mem.regis_table, 21, self.process.regis.mpc, "registrador")
 
         for i in range(4): # são 4 botões
             if i != 1:
@@ -508,3 +522,4 @@ class Interface:
 process = Processador()
 clock = Clock(process)
 interface = Interface(clock, process)
+
