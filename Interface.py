@@ -131,13 +131,13 @@ class Buttons:
         ]
 
         # INSTRUÇÕES ------------------------------------------------------------------------------------------
-        self.instrucoes = tk.LabelFrame(self.frame, text="Instrução atual")
+        self.instrucoes = tk.LabelFrame(self.frame, text="Instruções")
         self.instrucoes.pack(fill="x")
         self.instrucoes.configure(pady=5, padx=5)
 
         self.instr_table = ttk.Treeview(self.instrucoes, columns=("texto", "instr"), show="", height=2)
-        self.instr_table.column("texto", width=50, stretch=tk.NO, anchor="center")
-        self.instr_table.column("instr", width=150, stretch=tk.NO, anchor="center")
+        self.instr_table.column("texto", width=0, stretch=tk.NO, anchor="center")
+        self.instr_table.column("instr", width=200, stretch=tk.NO, anchor="center")
         self.instr_table.tag_configure(tagname="odd", background="white")
         self.instr_table.tag_configure(tagname="even", background="lightgray")
         self.instr_table.bind("<Button-1>", lambda event: "break")
@@ -151,14 +151,14 @@ class Buttons:
         self.ciclo_table.bind("<Button-1>", lambda event: "break")
         self.ciclo_table.pack()
 
-        campos = ["macro", "micro"]
+        campos = ["macroinstrução", "microinstrução"]
         for i in range(len(campos)):
             temp = "odd"
             if i == "":
                 temp = "even"
-            self.instr_table.insert("", index=tk.END, values=(campos[i], ""), tags=temp)
+            self.instr_table.insert("", index=tk.END, values=("", campos[i]), tags=temp)
 
-        campos = ["subciclo atual", "total de subciclos"]
+        campos = ["subciclo atual", "total de ciclos"]
         for i in range(len(campos)):
             temp = "odd"
             if i == "":
@@ -437,14 +437,15 @@ class Interface:
         self.regs_and_mem.edit_row(self.buttons.ciclo_table, 1, self.clock.subciclo_total, "total de subciclos")
 
         # atualizar macroinstrução e microinstrução mostradas
-        self.regs_and_mem.edit_row(self.buttons.instr_table, 0, "", "macro")
-        self.regs_and_mem.edit_row(self.buttons.instr_table, 1, "", "micro")
+        self.regs_and_mem.edit_row(self.buttons.instr_table, 0, "macroinstrução", "macro")
+        self.regs_and_mem.edit_row(self.buttons.instr_table, 1, "microinstrução", "micro")
 
         # programa carregado é inválido
         self.variables.valido = False
 
-        # rresetar os registradores
-        self.process.regis.__init__()
+        # rresetar o processador
+        self.process.__init__()
+        self.process.interface = self
 
 
 
@@ -456,6 +457,7 @@ class Interface:
         self.code_edit.code_binar.configure(state="normal")
         self.code_edit.code_binar.delete("1.0", "end")
         self.code_edit.code_binar.configure(state="disabled")
+
 
 
     def update_intervalo(self):
@@ -506,4 +508,3 @@ class Interface:
 process = Processador()
 clock = Clock(process)
 interface = Interface(clock, process)
-
